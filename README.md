@@ -41,7 +41,7 @@ No existe un script de instalación propio. `pnpm-lock.yaml` en la raíz es el �
 
 ## Configuración
 
-Copia `.env.example` a `.env` para operar PostgreSQL local. Sus valores son exclusivamente de desarrollo y la base escucha en loopback. Todavía no hay validación centralizada de configuración.
+Copia `.env.example` a `.env` para operar PostgreSQL local. Sus valores son exclusivamente de desarrollo y la base escucha en loopback. NestJS valida la configuración antes de iniciar.
 
 La API reconoce:
 
@@ -49,7 +49,7 @@ La API reconoce:
 | --- | --- | --- |
 | `HOST` | `127.0.0.1` | Interfaz donde escucha NestJS. |
 | `PORT` | `3211` | Puerto de NestJS. |
-| `DATABASE_URL` | Sin valor de producción | Conexión usada por Drizzle y la futura integración de API. |
+| `DATABASE_URL` | Obligatoria | Conexión PostgreSQL usada por `DatabaseService`. |
 
 La web fija `127.0.0.1:3210` directamente en sus scripts. Consulta [SECURITY.md](SECURITY.md) antes de cambiar la exposición de red.
 
@@ -86,9 +86,12 @@ Storybook escucha en `http://127.0.0.1:6006`.
 
 ```bash
 cp .env.example .env
-docker compose up -d postgres
+docker compose -f compose.dev.yaml up -d --wait
 pnpm db:migrate
+pnpm dev
 ```
+
+PostgreSQL se publica solo en `127.0.0.1:55432` para no competir con una instalación local en el puerto estándar. Web y API siguen ejecutándose con hot reload fuera de Docker.
 
 El esquema y las migraciones pertenecen a [`packages/models`](packages/models/README.md). Después de modificar el esquema:
 
@@ -98,6 +101,8 @@ pnpm db:check
 ```
 
 Revisa siempre el SQL generado antes de versionarlo. No edites una migración aplicada en otro entorno.
+
+Para ejecutar el stack self-hosted completo consulta [`DEPLOYMENT.md`](DEPLOYMENT.md). La configuración de producción aplica migraciones y levanta API/web en orden; solo publica la web en loopback.
 
 ## Calidad, tests y build
 

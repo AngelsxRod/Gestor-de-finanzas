@@ -29,3 +29,5 @@ pnpm --filter @gestor-finanzas/api test:debug
 `test` no incluye E2E. No hay mocks, fixtures, setup global, base de datos de pruebas ni umbrales de cobertura.
 
 El E2E necesita permisos para escuchar en red local.
+
+Vitest proporciona una `DATABASE_URL` sintácticamente válida para construir `AppModule`. Como el driver abre conexiones de forma diferida y el health check no consulta PostgreSQL, estos tests no requieren una base real. Los futuros tests de repositories deberán usar una base aislada y aplicar migraciones antes de ejecutarse.

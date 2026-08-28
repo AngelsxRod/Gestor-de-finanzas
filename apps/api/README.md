@@ -20,12 +20,15 @@ pnpm --filter @gestor-finanzas/api start:prod
 
 - `HOST`: `127.0.0.1` por defecto.
 - `PORT`: `3211` por defecto.
+- `DATABASE_URL`: obligatoria y validada como una URL PostgreSQL.
+
+Copia `.env.example` de la raíz a `.env` y levanta la base de desarrollo con `docker compose -f compose.dev.yaml up -d --wait`.
 
 ## Estado
 
 La API expone `GET /api/v1/health`, organizado dentro de `HealthModule`. La respuesta se construye con el contrato Zod de `@gestor-finanzas/contracts` y la web la consume mediante el rewrite de Next.js.
 
-La aplicación registra un prefijo versionado y `StandardSchemaValidationPipe`. No hay persistencia, autenticación ni autorización.
+La aplicación registra un prefijo versionado, `StandardSchemaValidationPipe` y un `DatabaseModule` global. `DatabaseService` expone el cliente tipado de `@gestor-finanzas/models` y lo cierra durante el apagado. Todavía no hay repositories de dominio, autenticación ni autorización.
 
 ## Documentación local
 

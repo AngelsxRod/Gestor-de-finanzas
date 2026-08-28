@@ -1,3 +1,5 @@
+name: gestor-finanzas-dev
+
 services:
   postgres:
     image: postgres:18-alpine
@@ -7,9 +9,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-gestor_finanzas}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gestor_finanzas_local}
     ports:
-      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql
+      - postgres-dev-data:/var/lib/postgresql
     healthcheck:
       test:
         - CMD-SHELL
@@ -20,4 +22,4 @@ services:
       start_period: 10s
 
 volumes:
-  postgres-data:
+  postgres-dev-data:

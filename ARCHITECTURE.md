@@ -38,6 +38,8 @@ Los Server Components son el valor predeterminado. Query Client, hooks, eventos 
 
 - `AppModule` compone módulos y no contiene comportamiento de dominio.
 - `HealthModule` agrupa controller y service del health check.
+- `DatabaseModule` registra globalmente el cliente tipado de `@gestor-finanzas/models` y administra su cierre.
+- `ConfigModule` carga y valida `DATABASE_URL`, `HOST`, `PORT` y `NODE_ENV` antes del arranque.
 - `app.config.ts` aplica el prefijo `/api/v1` y el pipe global de Standard Schema tanto en runtime como en E2E.
 - `GET /api/v1/health` devuelve el contrato compartido de health.
 
@@ -63,7 +65,7 @@ El package no administra datos, formularios ni navegación.
 
 ### `@gestor-finanzas/models`
 
-Es propietario del esquema Drizzle, los tipos persistidos, la fábrica de conexiones y las migraciones PostgreSQL. No contiene reglas de negocio, controllers ni contratos HTTP. La API administrará el ciclo de vida de la conexión cuando implemente el primer repository.
+Es propietario del esquema Drizzle, los tipos persistidos, la fábrica de conexiones y las migraciones PostgreSQL. No contiene reglas de negocio, controllers ni contratos HTTP. La API consume la fábrica y administra el ciclo de vida de la conexión mediante `DatabaseService`.
 
 Las decisiones y limitaciones del modelo inicial están registradas en [`ADR-0001`](docs/adr/0001-postgresql-drizzle-en-models.md).
 
@@ -82,7 +84,7 @@ Navegador
 apps/web ──► packages/ui
     └──────► packages/contracts ◄────── apps/api
 
-apps/api ──► packages/models ──► PostgreSQL  (integración siguiente)
+apps/api ──► packages/models ──► PostgreSQL
 ```
 
 Una app nunca importa archivos internos de la otra y ningún package depende de una app desplegable.
@@ -99,6 +101,6 @@ El repositorio conserva un único `pnpm-lock.yaml` raíz.
 
 ## Configuración y estado futuro
 
-La API lee `HOST` y `PORT`; sus valores predeterminados son `127.0.0.1` y `3211`. La web escucha en `127.0.0.1:3210`. PostgreSQL y sus migraciones están definidos, pero la API aún no abre la conexión. No hay autenticación, autorización o CI/CD.
+La API valida `DATABASE_URL`, `HOST`, `PORT` y `NODE_ENV`; abre PostgreSQL de forma diferida y cierra el cliente durante el apagado. La web escucha en `127.0.0.1:3210`. Desarrollo y producción self-hosted tienen Compose separados. No hay autenticación, autorización o CI/CD.
 
 [`docs/architecture.md`](docs/architecture.md) conserva la dirección futura para persistencia y OpenAPI. Este archivo describe únicamente la arquitectura implementada.

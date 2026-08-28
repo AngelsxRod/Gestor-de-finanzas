@@ -6,9 +6,13 @@
 - `HOST` y `PORT` pueden cambiarse mediante variables de entorno.
 - Los archivos `.env*` están ignorados por Git.
 
+## Base de datos
+
+`DATABASE_URL` es obligatoria y se valida antes de crear la aplicación. `DatabaseService` cierra el cliente PostgreSQL durante el apagado ordenado. La URL contiene credenciales: no debe aparecer en logs, errores públicos o archivos versionados.
+
 ## Capacidades ausentes
 
-No existen autenticación, autorización, CORS explícito, Helmet, rate limiting, persistencia, uploads, cifrado ni sesiones. `StandardSchemaValidationPipe` está registrado globalmente para los futuros esquemas de entrada.
+No existen autenticación, autorización, CORS explícito, Helmet, rate limiting, repositories de dominio, uploads, cifrado ni sesiones. `StandardSchemaValidationPipe` está registrado globalmente para los futuros esquemas de entrada.
 
 ## Telemetría
 
@@ -18,4 +22,4 @@ Nest Observe y sus credenciales placeholder fueron retirados. No hay exportació
 
 Cambiar `HOST` para escuchar fuera de loopback amplía la superficie de ataque. No realices ese cambio sin añadir y documentar autenticación, autorización, validación, límites de solicitudes y política CORS.
 
-No existe `.env.example`; cualquier nueva variable debe documentarse sin incluir valores sensibles.
+Los archivos `.env.example` documentan nombres y valores exclusivamente locales. Nunca copies sus credenciales a producción.
