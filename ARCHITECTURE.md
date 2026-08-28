@@ -1,0 +1,95 @@
+# Arquitectura
+
+## Visión general
+
+El repositorio es un monorepo TypeScript gestionado con pnpm 11.18.0 y Turborepo 2.10.12. Contiene dos aplicaciones desplegables, dos packages compartidos activos y dos marcadores futuros.
+
+```text
+gestor-de-finanzas
+├── apps
+│   ├── web            Next.js 16 + React 19
+│   └── api            NestJS 12
+└── packages
+    ├── contracts      esquemas Zod y tipos HTTP
+    ├── ui             tokens, atoms y molecules React
+    ├── api-client     marcador sin código
+    └── tooling        marcador sin configuración
+```
+
+Todavía no hay persistencia ni lógica financiera. La portada es una comprobación técnica reemplazable.
+
+## Aplicación web
+
+`@gestor-finanzas/web` usa App Router y conserva las rutas y layouts en `app/`. El código de aplicación vive bajo `src/`:
+
+- `src/features/<feature>/api`: operaciones HTTP propias de la feature.
+- `src/features/<feature>/hooks`: React Query y hooks de formulario.
+- `src/features/<feature>/schemas`: esquemas exclusivos de la interfaz.
+- `src/features/<feature>/components`: composición visual ligada a la feature.
+- `src/features/<feature>/templates`: distribución de regiones sin estado remoto ni reglas de formulario.
+- `src/lib`: infraestructura transversal de la app, como la instancia Axios.
+
+Los Server Components son el valor predeterminado. Query Client, hooks, eventos y formularios se aíslan tras fronteras `"use client"`. React Query administra estado remoto interactivo; React Hook Form y Zod validan formularios. Axios usa `/api/v1` y Next.js reenvía `/api/*` a la API local.
+
+## API
+
+`@gestor-finanzas/api` se organiza mediante feature modules de NestJS:
+
+- `AppModule` compone módulos y no contiene comportamiento de dominio.
+- `HealthModule` agrupa controller y service del health check.
+- `app.config.ts` aplica el prefijo `/api/v1` y el pipe global de Standard Schema tanto en runtime como en E2E.
+- `GET /api/v1/health` devuelve el contrato compartido de health.
+
+No se introducen repositories, entidades de persistencia, CQRS, DDD o capas hexagonales mientras no exista una necesidad concreta. Nest Observe fue retirado porque el starter solo contenía credenciales placeholder.
+
+## Packages compartidos
+
+### `@gestor-finanzas/contracts`
+
+Es la fuente de verdad de los datos que cruzan la frontera HTTP. Exporta esquemas Zod ejecutables y tipos inferidos. No contiene React, Axios ni reglas de negocio.
+
+### `@gestor-finanzas/ui`
+
+Implementa Atomic Design de forma incremental:
+
+- `foundations`: tokens CSS semánticos de color, tipografía, espacio, radios y sombras.
+- `atoms`: controles y tipografía visual indivisible.
+- `molecules`: composiciones pequeñas de atoms.
+- Los organisms que conocen el dominio permanecen dentro de las features web.
+- Los templates permanecen en la app y las pages en App Router.
+
+El package no administra datos, formularios ni navegación.
+
+### Marcadores
+
+`api-client` queda reservado para un posible cliente generado desde OpenAPI. `tooling` queda reservado para configuración compartida. Ninguno tiene exports o consumidores activos.
+
+## Dependencias y flujo
+
+```text
+Navegador
+  └─► apps/web /api/v1/health
+        └─► rewrite de Next.js
+              └─► apps/api /api/v1/health
+
+apps/web ──► packages/ui
+    └──────► packages/contracts ◄────── apps/api
+```
+
+Una app nunca importa archivos internos de la otra y ningún package depende de una app desplegable.
+
+## Build, tests y ejecución
+
+- `pnpm dev` inicia web y API en paralelo mediante el TUI de Turborepo.
+- `pnpm build` construye primero los packages requeridos y después sus consumidores.
+- `pnpm lint` ejecuta ESLint en web y Oxlint en API.
+- `pnpm test` ejecuta Vitest en API, contracts y las stories web en Chromium.
+- `pnpm storybook` expone el catálogo visual; `pnpm build:storybook` genera su artefacto estático.
+
+El repositorio conserva un único `pnpm-lock.yaml` raíz.
+
+## Configuración y estado futuro
+
+La API lee `HOST` y `PORT`; sus valores predeterminados son `127.0.0.1` y `3211`. La web escucha en `127.0.0.1:3210`. No hay `.env.example`, base de datos, migraciones, autenticación, autorización o CI/CD.
+
+[`docs/architecture.md`](docs/architecture.md) conserva la dirección futura para persistencia y OpenAPI. Este archivo describe únicamente la arquitectura implementada.

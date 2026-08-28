@@ -1,0 +1,13 @@
+import {
+  StandardSchemaValidationPipe,
+  type INestApplication,
+} from '@nestjs/common';
+
+export function configureApp(app: INestApplication): void {
+  app.setGlobalPrefix('api/v1');
+  app.useGlobalPipes(
+    new StandardSchemaValidationPipe({
+      transform: true,
+    }),
+  );
+}
