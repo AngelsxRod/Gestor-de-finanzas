@@ -10,7 +10,14 @@ pnpm test
 pnpm build
 ```
 
-Turborepo ejecuta los scripts disponibles en los workspaces. `pnpm build` alcanza a las apps y a los packages compilables; `pnpm test` ejecuta API, contratos y las stories de la web en Chromium.
+Turborepo ejecuta los scripts disponibles en los workspaces. `pnpm build` alcanza a las apps y a los packages compilables; `pnpm test` ejecuta API, contratos, modelos y las stories de la web en Chromium.
+
+Los checks del esquema y las migraciones se ejecutan además con:
+
+```bash
+pnpm db:check
+pnpm --filter @gestor-finanzas/models test
+```
 
 El sistema visual dispone además de comandos explícitos:
 

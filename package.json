@@ -9,6 +9,10 @@
     "storybook": "pnpm --filter @gestor-finanzas/web storybook",
     "build:storybook": "pnpm --filter @gestor-finanzas/web build-storybook",
     "test:storybook": "pnpm --filter @gestor-finanzas/web test:storybook",
+    "db:generate": "pnpm --filter @gestor-finanzas/models db:generate",
+    "db:migrate": "pnpm --filter @gestor-finanzas/models db:migrate",
+    "db:check": "pnpm --filter @gestor-finanzas/models db:check",
+    "db:studio": "pnpm --filter @gestor-finanzas/models db:studio",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test"
