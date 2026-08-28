@@ -1,0 +1,6 @@
+{
+  "name": "@gestor-finanzas/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Marcador para el futuro cliente TypeScript generado desde OpenAPI"
+}
