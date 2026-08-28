@@ -11,12 +11,13 @@ El repositorio usa pnpm 11.18.0, workspaces declarados en `pnpm-workspace.yaml` 
 | `apps/web` | Aplicación Next.js 16 organizada por features, con React Query, Axios, React Hook Form, Zod y Tailwind CSS 4. |
 | `apps/api` | Aplicación NestJS 12 organizada por feature modules. Expone el health check versionado. |
 | `packages/contracts` | Contratos HTTP compartidos mediante esquemas Zod y tipos inferidos. |
+| `packages/models` | Esquema Drizzle, conexión y migraciones PostgreSQL. No contiene reglas de negocio. |
 | `packages/ui` | Primitivas React compartidas organizadas con Atomic Design. |
 | `packages/api-client` | Marcador vacío para un futuro cliente de API. No contiene código ni genera contratos. |
 | `packages/tooling` | Marcador vacío para futura configuración compartida. |
 | `docs/architecture.md` | Documento de planificación futura; no describe por sí solo funcionalidad ya construida. |
 
-La web consume `contracts` y `ui`; la API consume `contracts`. `api-client` y `tooling` siguen sin consumidores.
+La web consume `contracts` y `ui`; la API consume `contracts`. `models` es propietario de la persistencia y será consumido por la API. `api-client` y `tooling` siguen sin consumidores.
 
 ## Qué leer antes de cambiar algo
 
@@ -24,6 +25,7 @@ La web consume `contracts` y `ui`; la API consume `contracts`. `api-client` y `t
 - Estructura, límites entre apps o nuevos paquetes: [ARCHITECTURE.md](ARCHITECTURE.md).
 - Flujo de ramas, commits y pull requests: [CONTRIBUTING.md](CONTRIBUTING.md).
 - Decisiones técnicas duraderas: [`docs/adr/README.md`](docs/adr/README.md).
+- Esquema o migraciones: `packages/models/README.md` y el ADR vigente.
 - Código TypeScript o React: `apps/web/STYLEGUIDE.md`.
 - Código NestJS: `apps/api/AGENTS.md` y `apps/api/STYLEGUIDE.md`.
 - Tests de API: `apps/api/TESTING.md`. Para la ejecución transversal, [TESTING.md](TESTING.md).
@@ -54,7 +56,7 @@ pnpm lint
 pnpm test
 ```
 
-Los scripts raíz delegan en Turborepo. `pnpm dev` ejecuta las tareas persistentes `dev` de la web y la API en paralelo. `pnpm test` alcanza a la API, `packages/contracts` y las stories de la web.
+Los scripts raíz delegan en Turborepo. `pnpm dev` ejecuta las tareas persistentes `dev` de la web y la API en paralelo. `pnpm test` alcanza a la API, `packages/contracts`, `packages/models` y las stories de la web.
 
 Para comandos propios de la API:
 
@@ -92,6 +94,7 @@ El build actual de la web descarga Geist desde Google Fonts. Puede fallar en ent
 - No borres ni reescribas el bloque generado de `apps/web/AGENTS.md`.
 - No conviertas `packages/api-client` o `packages/tooling` en dependencias reales sin añadir manifiestos, exports, uso comprobable y documentación coherente.
 - Mantén `packages/contracts` libre de lógica de negocio, React y transporte HTTP.
+- Mantén tablas, conexión y migraciones en `packages/models`; no edites migraciones ya aplicadas.
 - Mantén atoms y molecules reutilizables en `packages/ui`; los organisms ligados al dominio pertenecen a la feature web correspondiente.
 - Mantén templates sin acceso a datos dentro de la feature y pages dentro de App Router. Verifica cambios visuales con `pnpm test:storybook`.
 - No copies código interno de una app a otra para simular una dependencia compartida.

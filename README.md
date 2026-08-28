@@ -8,6 +8,7 @@ Monorepo TypeScript para una futura aplicación personal de finanzas. El estado 
 - pnpm 11.18.0, fijado en `packageManager`.
 - Next.js 16.3.3 y React 19.2.8 para la web.
 - NestJS 12 para la API.
+- PostgreSQL 18 y Drizzle ORM para persistencia.
 - TypeScript estricto en ambos workspaces.
 
 El monorepo usa pnpm workspaces mediante `pnpm-workspace.yaml` y Turborepo 2.10.12 para ejecutar tareas. No usa Nx.
@@ -20,12 +21,13 @@ apps/
 └── api/          # @gestor-finanzas/api: NestJS y Vitest
 packages/
 ├── contracts/    # Esquemas Zod y tipos de los contratos HTTP
+├── models/       # Esquema Drizzle, conexión y migraciones PostgreSQL
 ├── ui/           # Tokens, atoms y molecules React compartidos
 ├── api-client/   # Marcador para un futuro cliente generado
 └── tooling/      # Marcador para futura configuración compartida
 ```
 
-La web depende de `contracts` y `ui`; la API depende de `contracts`.
+La web depende de `contracts` y `ui`; la API depende de `contracts`. `models` define la frontera de persistencia y será consumido por la API al implementar el primer flujo financiero.
 
 ## Instalación
 
@@ -39,7 +41,7 @@ No existe un script de instalación propio. `pnpm-lock.yaml` en la raíz es el �
 
 ## Configuración
 
-No hay archivos `.env.example` ni validación centralizada de configuración.
+Copia `.env.example` a `.env` para operar PostgreSQL local. Sus valores son exclusivamente de desarrollo y la base escucha en loopback. Todavía no hay validación centralizada de configuración.
 
 La API reconoce:
 
@@ -47,6 +49,7 @@ La API reconoce:
 | --- | --- | --- |
 | `HOST` | `127.0.0.1` | Interfaz donde escucha NestJS. |
 | `PORT` | `3211` | Puerto de NestJS. |
+| `DATABASE_URL` | Sin valor de producción | Conexión usada por Drizzle y la futura integración de API. |
 
 La web fija `127.0.0.1:3210` directamente en sus scripts. Consulta [SECURITY.md](SECURITY.md) antes de cambiar la exposición de red.
 
@@ -78,6 +81,23 @@ pnpm storybook
 ```
 
 Storybook escucha en `http://127.0.0.1:6006`.
+
+## Base de datos local
+
+```bash
+cp .env.example .env
+docker compose up -d postgres
+pnpm db:migrate
+```
+
+El esquema y las migraciones pertenecen a [`packages/models`](packages/models/README.md). Después de modificar el esquema:
+
+```bash
+pnpm db:generate
+pnpm db:check
+```
+
+Revisa siempre el SQL generado antes de versionarlo. No edites una migración aplicada en otro entorno.
 
 ## Calidad, tests y build
 
@@ -129,4 +149,5 @@ No determinado a partir del repositorio actual: proceso de despliegue self-hoste
 - [`docs/adr`](docs/adr/README.md): decisiones técnicas importantes y su justificación.
 - [`apps/web/README.md`](apps/web/README.md): aplicación web y documentación local.
 - [`apps/api/README.md`](apps/api/README.md): API y documentación local.
+- [`packages/models/README.md`](packages/models/README.md): esquema, migraciones y comandos de base de datos.
 - [`docs/architecture.md`](docs/architecture.md): intención futura; no representa funcionalidad ya construida.

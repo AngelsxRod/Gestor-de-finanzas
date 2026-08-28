@@ -5,8 +5,9 @@ Este archivo comunica prioridades, no fechas ni compromisos de release. El estad
 ## Ahora: base técnica confiable
 
 - Definir el primer flujo financiero y sus criterios de aceptación.
-- Diseñar el modelo de datos y decidir la estrategia de persistencia mediante un ADR.
-- Añadir validación centralizada de configuración y un `.env.example` sin secretos.
+- [x] Diseñar el modelo inicial y decidir PostgreSQL + Drizzle mediante ADR-0001.
+- [x] Añadir `.env.example` con configuración exclusivamente local.
+- Integrar `@gestor-finanzas/models` en la API y validar su configuración al iniciar.
 - Establecer integración continua para lint, tests y builds.
 - Definir la estrategia de autenticación y protección de datos antes de almacenar información financiera real.
 

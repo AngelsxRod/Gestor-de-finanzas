@@ -2,7 +2,7 @@
 
 ## Visión general
 
-El repositorio es un monorepo TypeScript gestionado con pnpm 11.18.0 y Turborepo 2.10.12. Contiene dos aplicaciones desplegables, dos packages compartidos activos y dos marcadores futuros.
+El repositorio es un monorepo TypeScript gestionado con pnpm 11.18.0 y Turborepo 2.10.12. Contiene dos aplicaciones desplegables, tres packages compartidos activos y dos marcadores futuros.
 
 ```text
 gestor-de-finanzas
@@ -11,12 +11,13 @@ gestor-de-finanzas
 │   └── api            NestJS 12
 └── packages
     ├── contracts      esquemas Zod y tipos HTTP
+    ├── models         esquema, conexión y migraciones PostgreSQL
     ├── ui             tokens, atoms y molecules React
     ├── api-client     marcador sin código
     └── tooling        marcador sin configuración
 ```
 
-Todavía no hay persistencia ni lógica financiera. La portada es una comprobación técnica reemplazable.
+El esquema de persistencia inicial ya existe, pero todavía no está integrado en la API y no hay lógica financiera. La portada es una comprobación técnica reemplazable.
 
 ## Aplicación web
 
@@ -60,6 +61,12 @@ Implementa Atomic Design de forma incremental:
 
 El package no administra datos, formularios ni navegación.
 
+### `@gestor-finanzas/models`
+
+Es propietario del esquema Drizzle, los tipos persistidos, la fábrica de conexiones y las migraciones PostgreSQL. No contiene reglas de negocio, controllers ni contratos HTTP. La API administrará el ciclo de vida de la conexión cuando implemente el primer repository.
+
+Las decisiones y limitaciones del modelo inicial están registradas en [`ADR-0001`](docs/adr/0001-postgresql-drizzle-en-models.md).
+
 ### Marcadores
 
 `api-client` queda reservado para un posible cliente generado desde OpenAPI. `tooling` queda reservado para configuración compartida. Ninguno tiene exports o consumidores activos.
@@ -74,6 +81,8 @@ Navegador
 
 apps/web ──► packages/ui
     └──────► packages/contracts ◄────── apps/api
+
+apps/api ──► packages/models ──► PostgreSQL  (integración siguiente)
 ```
 
 Una app nunca importa archivos internos de la otra y ningún package depende de una app desplegable.
@@ -90,6 +99,6 @@ El repositorio conserva un único `pnpm-lock.yaml` raíz.
 
 ## Configuración y estado futuro
 
-La API lee `HOST` y `PORT`; sus valores predeterminados son `127.0.0.1` y `3211`. La web escucha en `127.0.0.1:3210`. No hay `.env.example`, base de datos, migraciones, autenticación, autorización o CI/CD.
+La API lee `HOST` y `PORT`; sus valores predeterminados son `127.0.0.1` y `3211`. La web escucha en `127.0.0.1:3210`. PostgreSQL y sus migraciones están definidos, pero la API aún no abre la conexión. No hay autenticación, autorización o CI/CD.
 
 [`docs/architecture.md`](docs/architecture.md) conserva la dirección futura para persistencia y OpenAPI. Este archivo describe únicamente la arquitectura implementada.

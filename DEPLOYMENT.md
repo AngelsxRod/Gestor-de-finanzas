@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-El repositorio todavía no define un destino de despliegue, CI/CD, contenedores, infraestructura ni estrategia de releases. La aplicación está configurada para uso local y ambos servidores escuchan en loopback por defecto.
+El repositorio todavía no define un destino de despliegue, CI/CD, contenedores de aplicación, infraestructura ni estrategia de releases. PostgreSQL dispone de un servicio Compose para desarrollo local y escucha en loopback; no constituye por sí solo un despliegue de producción.
 
 Este documento describe únicamente cómo producir y comprobar artefactos; no debe interpretarse como un procedimiento de producción aprobado.
 

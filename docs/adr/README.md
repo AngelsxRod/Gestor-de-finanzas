@@ -26,4 +26,4 @@ Estados permitidos: `propuesto`, `aceptado`, `rechazado`, `obsoleto` o `reemplaz
 
 ## Índice
 
-Todavía no hay decisiones registradas.
+- [ADR-0001: PostgreSQL y Drizzle en un package de modelos](0001-postgresql-drizzle-en-models.md) — aceptado.
