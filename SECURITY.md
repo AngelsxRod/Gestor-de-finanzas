@@ -13,4 +13,6 @@ La exposición HTTP y las capacidades ausentes de la API se documentan en [`apps
 
 `DATABASE_URL` contiene credenciales y nunca debe registrarse en logs, issues o commits. En producción debe provenir del gestor de secretos del entorno y usar un usuario de aplicación con privilegios mínimos. Los backups y restauraciones deben cifrarse y probarse antes de almacenar información financiera real.
 
+El Compose de producción publica únicamente la web en `127.0.0.1`. No cambies ese binding a `0.0.0.0` ni lo expongas mediante un proxy, túnel o router mientras la aplicación no tenga autenticación y autorización.
+
 No existe una guía de seguridad local para la web porque el código actual no aporta reglas específicas suficientes. Si se añaden entrada de usuario, sesión, consumo de API o manejo de datos financieros, habrá que definir y documentar los controles correspondientes.

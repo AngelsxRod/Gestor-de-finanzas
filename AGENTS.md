@@ -30,6 +30,7 @@ La web consume `contracts` y `ui`; la API consume `contracts`. `models` es propi
 - Código NestJS: `apps/api/AGENTS.md` y `apps/api/STYLEGUIDE.md`.
 - Tests de API: `apps/api/TESTING.md`. Para la ejecución transversal, [TESTING.md](TESTING.md).
 - Telemetría o configuración de seguridad de la API: `apps/api/SECURITY.md`. Para reglas transversales, [SECURITY.md](SECURITY.md).
+- Contenedores o despliegue self-hosted: [DEPLOYMENT.md](DEPLOYMENT.md).
 - Comandos y puesta en marcha: [README.md](README.md).
 
 Antes de modificar Next.js, lee la guía relevante en `apps/web/node_modules/next/dist/docs/`, tal como exige `apps/web/AGENTS.md`. Esa instrucción es generada por Next.js y no debe eliminarse.
@@ -91,6 +92,7 @@ El build actual de la web descarga Geist desde Google Fonts. Puede fallar en ent
 - No edites `node_modules/`, `.next/`, `dist/`, `coverage/` ni `*.tsbuildinfo`; son artefactos o dependencias generadas.
 - No cambies `pnpm-lock.yaml` si no cambia ninguna dependencia. Es el único lockfile del monorepo.
 - No edites `.turbo/`; contiene caché y logs generados.
+- No publiques directamente los puertos de API o PostgreSQL en producción ni uses credenciales de los archivos de ejemplo.
 - No borres ni reescribas el bloque generado de `apps/web/AGENTS.md`.
 - No conviertas `packages/api-client` o `packages/tooling` en dependencias reales sin añadir manifiestos, exports, uso comprobable y documentación coherente.
 - Mantén `packages/contracts` libre de lógica de negocio, React y transporte HTTP.

@@ -7,7 +7,8 @@ Este archivo comunica prioridades, no fechas ni compromisos de release. El estad
 - Definir el primer flujo financiero y sus criterios de aceptación.
 - [x] Diseñar el modelo inicial y decidir PostgreSQL + Drizzle mediante ADR-0001.
 - [x] Añadir `.env.example` con configuración exclusivamente local.
-- Integrar `@gestor-finanzas/models` en la API y validar su configuración al iniciar.
+- [x] Integrar `@gestor-finanzas/models` en la API y validar su configuración al iniciar.
+- [x] Añadir Compose separados para desarrollo y producción self-hosted.
 - Establecer integración continua para lint, tests y builds.
 - Definir la estrategia de autenticación y protección de datos antes de almacenar información financiera real.
 

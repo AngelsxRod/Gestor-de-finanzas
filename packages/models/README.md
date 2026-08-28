@@ -24,4 +24,4 @@ pnpm --filter @gestor-finanzas/models db:studio
 - `drizzle/`: historial SQL generado y metadatos de migración.
 - `drizzle.config.ts`: configuración exclusiva de Drizzle Kit.
 
-El package no contiene controladores, reglas de negocio, contratos HTTP ni componentes React.
+El package no contiene controladores, reglas de negocio, contratos HTTP ni componentes React. NestJS lo integra mediante `apps/api/src/modules/database`; otros consumidores deben crear y cerrar su propia conexión explícitamente.

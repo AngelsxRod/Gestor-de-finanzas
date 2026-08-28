@@ -19,3 +19,4 @@ export function createDatabase(databaseUrl: string) {
 }
 
 export type Database = ReturnType<typeof createDatabase>['db'];
+export type DatabaseConnection = ReturnType<typeof createDatabase>;
