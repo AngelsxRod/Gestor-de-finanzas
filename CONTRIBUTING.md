@@ -51,6 +51,10 @@ Tipos permitidos:
 
 Usa como alcance el workspace o dominio afectado (`web`, `api`, `contracts`, `ui`, `repo`). La descripción debe ir en minúsculas, ser concreta, no terminar en punto y preferiblemente no superar 72 caracteres.
 
+Los tipos y alcances conservan los identificadores técnicos de Conventional Commits, pero la descripción y el cuerpo del mensaje deben escribirse en español.
+
+Cada commit debe representar una sola intención verificable. Separa contratos, API o persistencia, interfaz, pruebas y documentación cuando puedan revisarse de forma independiente. La cantidad de archivos no determina por sí sola la granularidad: no agrupes objetivos independientes ni dividas artificialmente un mismo cambio coherente por archivo.
+
 Ejemplos:
 
 ```text
@@ -94,3 +98,5 @@ Cada PR debe incluir:
 - referencia al issue, roadmap o ADR relacionado.
 
 Solicita una revisión enfocada, responde los comentarios y conserva un historial entendible. Antes de integrar, todos los checks exigidos deben pasar y la documentación debe reflejar el comportamiento final.
+
+Cuando los commits del PR deban conservarse como registro, usa **Create a merge commit**. No uses **Squash and merge**, porque reemplaza los commits individuales por uno solo en la rama base.
