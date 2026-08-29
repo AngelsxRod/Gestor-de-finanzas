@@ -5,10 +5,10 @@ import {
 } from "@gestor-finanzas/contracts";
 import { useForm } from "react-hook-form";
 
-export function useAccountForm() {
+export function useAccountForm(defaultValues?: CreateAccountRequest) {
   return useForm<CreateAccountRequest>({
     resolver: zodResolver(createAccountRequestSchema),
-    defaultValues: {
+    defaultValues: defaultValues ?? {
       name: "",
       type: "cash",
       currency: "GTQ",

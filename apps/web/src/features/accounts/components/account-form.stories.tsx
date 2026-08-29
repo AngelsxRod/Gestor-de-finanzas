@@ -22,6 +22,17 @@ export const DuplicateName: Story = {
 export const Success: Story = {
   args: { successMessage: "La cuenta se guardó correctamente." },
 };
+export const Edit: Story = {
+  args: {
+    mode: "edit",
+    initialValues: {
+      name: "Cuenta principal",
+      type: "checking",
+      currency: "GTQ",
+      openingBalance: "1250.5000",
+    },
+  },
+};
 export const ValidationAndSubmit: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);

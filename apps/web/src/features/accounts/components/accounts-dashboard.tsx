@@ -1,47 +1,92 @@
 "use client";
 
-import type { CreateAccountRequest } from "@gestor-finanzas/contracts";
+import type {
+  Account,
+  CreateAccountRequest,
+} from "@gestor-finanzas/contracts";
+import { Modal } from "@gestor-finanzas/ui";
 import { AccountApiError } from "../api/account-api-error";
+import { useAccountModal } from "../context/account-modal-context";
 import { useAccountsQuery } from "../hooks/use-accounts-query";
 import { useCreateAccountMutation } from "../hooks/use-create-account-mutation";
+import { useSetAccountActiveMutation } from "../hooks/use-set-account-active-mutation";
+import { useUpdateAccountMutation } from "../hooks/use-update-account-mutation";
 import { AccountForm } from "./account-form";
-import { AccountList } from "./account-list";
+import { AccountsTable } from "./accounts-table";
+
+function toFormValues(account: Account): CreateAccountRequest {
+  return {
+    name: account.name,
+    type: account.type,
+    currency: account.currency,
+    openingBalance: account.openingBalance,
+  };
+}
 
 export function AccountsDashboard() {
   const accountsQuery = useAccountsQuery();
+  const { state, close, openEdit } = useAccountModal();
   const createAccount = useCreateAccountMutation();
+  const updateAccount = useUpdateAccountMutation();
+  const setActive = useSetAccountActiveMutation();
 
-  async function submit(input: CreateAccountRequest) {
-    await createAccount.mutateAsync(input);
+  const saveMutation = state?.mode === "edit" ? updateAccount : createAccount;
+
+  async function submit(values: CreateAccountRequest) {
+    if (state?.mode === "edit") {
+      await updateAccount.mutateAsync({ id: state.item.id, input: values });
+    } else {
+      await createAccount.mutateAsync(values);
+    }
+    close();
   }
 
   const formError =
-    createAccount.error instanceof AccountApiError
-      ? createAccount.error.message
+    saveMutation.error instanceof AccountApiError
+      ? saveMutation.error.message
       : undefined;
 
   return (
-    <div className="grid gap-[var(--ui-space-6)] lg:grid-cols-2 lg:items-start">
-      <AccountForm
-        errorMessage={formError}
-        isSubmitting={createAccount.isPending}
-        onSubmit={submit}
-        successMessage={
-          createAccount.isSuccess ? "La cuenta se guardó correctamente." : undefined
-        }
-      />
-
-      {accountsQuery.isPending ? <AccountList state="loading" /> : null}
+    <div className="grid gap-[var(--ui-space-6)]">
+      {accountsQuery.isPending ? <AccountsTable state="loading" /> : null}
       {accountsQuery.isError ? (
-        <AccountList
+        <AccountsTable
           state="error"
           isRetrying={accountsQuery.isFetching}
           onRetry={() => void accountsQuery.refetch()}
         />
       ) : null}
       {accountsQuery.isSuccess ? (
-        <AccountList state="success" accounts={accountsQuery.data.accounts} />
+        <AccountsTable
+          state="success"
+          accounts={accountsQuery.data.accounts}
+          onEdit={openEdit}
+          onToggleActive={(account) =>
+            setActive.mutate({ id: account.id, isActive: !account.isActive })
+          }
+          togglingAccountId={
+            setActive.isPending ? setActive.variables?.id : undefined
+          }
+        />
       ) : null}
+
+      <Modal
+        open={state !== null}
+        onClose={close}
+        labelledBy="account-form-title"
+      >
+        {state !== null ? (
+          <AccountForm
+            mode={state.mode}
+            initialValues={
+              state.mode === "edit" ? toFormValues(state.item) : undefined
+            }
+            isSubmitting={saveMutation.isPending}
+            errorMessage={formError}
+            onSubmit={submit}
+          />
+        ) : null}
+      </Modal>
     </div>
   );
 }
