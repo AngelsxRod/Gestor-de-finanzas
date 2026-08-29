@@ -106,6 +106,122 @@ describe('application (e2e)', () => {
     });
   });
 
+  it('/api/v1/accounts/:id (PATCH) validates, updates, reports conflicts and not-found', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Cuenta original',
+        type: 'cash',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const accountId = created.body.account.id;
+
+    await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Otra cuenta',
+        type: 'cash',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/accounts/${accountId}`)
+      .send({ name: '', type: 'wallet', currency: 'GT', openingBalance: 'x' })
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      });
+
+    const updateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/accounts/${accountId}`)
+      .send({
+        name: 'Cuenta renombrada',
+        type: 'savings',
+        currency: 'USD',
+        openingBalance: '10.0000',
+      })
+      .expect(200);
+    expect(updateResponse.body).toMatchObject({
+      account: {
+        id: accountId,
+        name: 'Cuenta renombrada',
+        type: 'savings',
+        currency: 'USD',
+        openingBalance: '10.0000',
+      },
+    });
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/accounts/${accountId}`)
+      .send({
+        name: 'Otra cuenta',
+        type: 'cash',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(409)
+      .expect({
+        code: 'ACCOUNT_NAME_CONFLICT',
+        message: 'Ya existe una cuenta con ese nombre.',
+      });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/accounts/00000000-0000-0000-0000-000000000000')
+      .send({
+        name: 'Cuenta',
+        type: 'cash',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(404)
+      .expect({
+        code: 'ACCOUNT_NOT_FOUND',
+        message: 'No se encontró la cuenta solicitada.',
+      });
+  });
+
+  it('/api/v1/accounts/:id/active (PATCH) toggles the active flag and reports not-found', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Cuenta a desactivar',
+        type: 'cash',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const accountId = created.body.account.id;
+
+    const deactivateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/accounts/${accountId}/active`)
+      .send({ isActive: false })
+      .expect(200);
+    expect(deactivateResponse.body).toMatchObject({
+      account: { id: accountId, isActive: false },
+    });
+
+    const reactivateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/accounts/${accountId}/active`)
+      .send({ isActive: true })
+      .expect(200);
+    expect(reactivateResponse.body).toMatchObject({
+      account: { id: accountId, isActive: true },
+    });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/accounts/00000000-0000-0000-0000-000000000000/active')
+      .send({ isActive: false })
+      .expect(404)
+      .expect({
+        code: 'ACCOUNT_NOT_FOUND',
+        message: 'No se encontró la cuenta solicitada.',
+      });
+  });
+
   it('/api/v1/categories (GET) returns an empty category collection', () => {
     return request(app.getHttpServer())
       .get('/api/v1/categories')
@@ -161,6 +277,86 @@ describe('application (e2e)', () => {
           `${category.type}:${category.name}`,
       ),
     ).toEqual(['income:vivienda', 'expense:Alimentación', 'expense:Vivienda']);
+  });
+
+  it('/api/v1/categories/:id (PATCH) validates, updates, reports conflicts and not-found', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Transporte', type: 'expense' })
+      .expect(201);
+    const categoryId = created.body.category.id;
+
+    await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Salario', type: 'income' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/categories/${categoryId}`)
+      .send({ name: '   ', type: 'transfer' })
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      });
+
+    const updateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/categories/${categoryId}`)
+      .send({ name: 'Transporte público', type: 'expense' })
+      .expect(200);
+    expect(updateResponse.body).toMatchObject({
+      category: { id: categoryId, name: 'Transporte público', type: 'expense' },
+    });
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/categories/${categoryId}`)
+      .send({ name: 'Salario', type: 'income' })
+      .expect(409)
+      .expect({
+        code: 'CATEGORY_NAME_CONFLICT',
+        message: 'Ya existe una categoría con ese nombre y tipo.',
+      });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/categories/00000000-0000-0000-0000-000000000000')
+      .send({ name: 'Comida', type: 'expense' })
+      .expect(404)
+      .expect({
+        code: 'CATEGORY_NOT_FOUND',
+        message: 'No se encontró la categoría solicitada.',
+      });
+  });
+
+  it('/api/v1/categories/:id/active (PATCH) toggles the active flag and reports not-found', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Ocio', type: 'expense' })
+      .expect(201);
+    const categoryId = created.body.category.id;
+
+    const deactivateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/categories/${categoryId}/active`)
+      .send({ isActive: false })
+      .expect(200);
+    expect(deactivateResponse.body).toMatchObject({
+      category: { id: categoryId, isActive: false },
+    });
+
+    const reactivateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/categories/${categoryId}/active`)
+      .send({ isActive: true })
+      .expect(200);
+    expect(reactivateResponse.body).toMatchObject({
+      category: { id: categoryId, isActive: true },
+    });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/categories/00000000-0000-0000-0000-000000000000/active')
+      .send({ isActive: false })
+      .expect(404)
+      .expect({
+        code: 'CATEGORY_NOT_FOUND',
+        message: 'No se encontró la categoría solicitada.',
+      });
   });
 
   afterEach(async () => {
