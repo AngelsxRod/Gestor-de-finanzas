@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   pgEnum,
   pgTable,
@@ -17,6 +18,7 @@ export const categories = pgTable(
     id: uuid('id').defaultRandom().primaryKey(),
     name: varchar('name', { length: 100 }).notNull(),
     type: categoryType('type').notNull(),
+    isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -29,7 +29,7 @@ El package no contiene controladores, reglas de negocio, contratos HTTP ni compo
 ## Modelo actual
 
 - `accounts`: cuentas de efectivo, corriente, ahorro, crédito o inversión, con moneda, saldo de apertura y estado activo.
-- `categories`: categorías diferenciadas por ingreso o gasto.
+- `categories`: categorías diferenciadas por ingreso o gasto, con estado activo.
 - `transactions`: ingresos, gastos y transferencias asociados a cuentas y, cuando corresponde, a una categoría.
 
 PostgreSQL garantiza importes positivos, monedas con tres letras mayúsculas, referencias protegidas y la forma estructural de cada tipo de movimiento. La futura capa de servicios deberá validar las reglas que cruzan tablas, incluida la compatibilidad de moneda y categoría.

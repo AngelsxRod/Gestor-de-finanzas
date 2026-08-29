@@ -8,6 +8,13 @@
       "when": 1787945961640,
       "tag": "0000_smooth_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788000051269,
+      "tag": "0001_bumpy_doctor_doom",
+      "breakpoints": true
     }
   ]
 }
