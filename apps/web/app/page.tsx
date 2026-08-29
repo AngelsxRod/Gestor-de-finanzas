@@ -1,6 +1,7 @@
 import { ContentHeader } from "@gestor-finanzas/ui";
 import { AccountsDashboard } from "@/src/features/accounts/components/accounts-dashboard";
 import { AccountsTemplate } from "@/src/features/accounts/templates/accounts-template";
+import { CategoriesDashboard } from "@/src/features/categories/components/categories-dashboard";
 
 export default function Home() {
   return (
@@ -15,7 +16,10 @@ export default function Home() {
         />
       }
       content={
-        <AccountsDashboard />
+        <div className="grid gap-[var(--ui-space-10)]">
+          <AccountsDashboard />
+          <CategoriesDashboard />
+        </div>
       }
     />
   );
