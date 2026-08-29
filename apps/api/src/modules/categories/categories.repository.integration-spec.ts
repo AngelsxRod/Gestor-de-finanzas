@@ -50,4 +50,49 @@ describe('CategoriesRepository integration', () => {
       cause: { code: '23505', constraint_name: 'categories_name_type_unique' },
     });
   });
+
+  it('updates an existing category and refreshes updatedAt', async () => {
+    const created = await repository.create({
+      name: 'Transporte',
+      type: 'expense',
+    });
+
+    const updated = await repository.updateById(created.id, {
+      name: 'Transporte público',
+      type: 'expense',
+    });
+
+    expect(updated).toMatchObject({ name: 'Transporte público' });
+    expect(updated?.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      created.updatedAt.getTime(),
+    );
+  });
+
+  it('returns undefined when updating a category that does not exist', async () => {
+    await expect(
+      repository.updateById('00000000-0000-0000-0000-000000000000', {
+        name: 'Comida',
+        type: 'expense',
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('toggles the active flag', async () => {
+    const created = await repository.create({
+      name: 'Salud',
+      type: 'expense',
+    });
+
+    const deactivated = await repository.setActive(created.id, false);
+    expect(deactivated).toMatchObject({ isActive: false });
+
+    const reactivated = await repository.setActive(created.id, true);
+    expect(reactivated).toMatchObject({ isActive: true });
+  });
+
+  it('returns undefined when setting active state on an unknown category', async () => {
+    await expect(
+      repository.setActive('00000000-0000-0000-0000-000000000000', false),
+    ).resolves.toBeUndefined();
+  });
 });

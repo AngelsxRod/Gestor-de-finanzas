@@ -1,9 +1,12 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type {
   Category as CategoryResponse,
   CreateCategoryRequest,
   CreateCategoryResponse,
   ListCategoriesResponse,
+  SetCategoryActiveResponse,
+  UpdateCategoryRequest,
+  UpdateCategoryResponse,
 } from '@gestor-finanzas/contracts';
 import type { Category } from '@gestor-finanzas/models';
 import { CategoriesRepository } from './categories.repository.js';
@@ -34,6 +37,7 @@ function toResponse(category: Category): CategoryResponse {
     id: category.id,
     name: category.name,
     type: category.type,
+    isActive: category.isActive,
     createdAt: category.createdAt.toISOString(),
     updatedAt: category.updatedAt.toISOString(),
   };
@@ -61,5 +65,52 @@ export class CategoriesService {
       }
       throw error;
     }
+  }
+
+  async update(
+    id: string,
+    input: UpdateCategoryRequest,
+  ): Promise<UpdateCategoryResponse> {
+    try {
+      const category = await this.categoriesRepository.updateById(id, input);
+
+      if (!category) {
+        throw new NotFoundException({
+          code: 'CATEGORY_NOT_FOUND',
+          message: 'No se encontró la categoría solicitada.',
+        });
+      }
+
+      return { category: toResponse(category) };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      if (isCategoryNameConflict(error)) {
+        throw new ConflictException({
+          code: 'CATEGORY_NAME_CONFLICT',
+          message: 'Ya existe una categoría con ese nombre y tipo.',
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  async setActive(
+    id: string,
+    isActive: boolean,
+  ): Promise<SetCategoryActiveResponse> {
+    const category = await this.categoriesRepository.setActive(id, isActive);
+
+    if (!category) {
+      throw new NotFoundException({
+        code: 'CATEGORY_NOT_FOUND',
+        message: 'No se encontró la categoría solicitada.',
+      });
+    }
+
+    return { category: toResponse(category) };
   }
 }
