@@ -8,6 +8,7 @@ export {
 } from "./atoms/heading.js";
 export { Input, type InputProps } from "./atoms/input.js";
 export { Label, type LabelProps } from "./atoms/label.js";
+export { Select, type SelectProps } from "./atoms/select.js";
 export {
   Text,
   type TextElement,
