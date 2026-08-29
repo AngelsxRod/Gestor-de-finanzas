@@ -15,12 +15,15 @@ describe('TransactionsController', () => {
       categoryId: 'c9f2a1a0-4e9a-4a2e-9b0a-6a5b4d3c2f10',
       occurredAt: '2026-08-29T12:00:00.000Z',
       notes: null,
+      isActive: true,
       createdAt: '2026-08-29T12:00:00.000Z',
       updatedAt: '2026-08-29T12:00:00.000Z',
     };
     const service = {
       create: vi.fn().mockResolvedValue({ transaction }),
       list: vi.fn().mockResolvedValue({ transactions: [transaction] }),
+      update: vi.fn().mockResolvedValue({ transaction }),
+      setActive: vi.fn().mockResolvedValue({ transaction }),
     };
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TransactionsController],
@@ -41,5 +44,15 @@ describe('TransactionsController', () => {
       transactions: [transaction],
     });
     expect(service.create).toHaveBeenCalledWith(input);
+
+    await expect(controller.update(transaction.id, input)).resolves.toEqual({
+      transaction,
+    });
+    expect(service.update).toHaveBeenCalledWith(transaction.id, input);
+
+    await expect(
+      controller.setActive(transaction.id, { isActive: false }),
+    ).resolves.toEqual({ transaction });
+    expect(service.setActive).toHaveBeenCalledWith(transaction.id, false);
   });
 });

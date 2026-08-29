@@ -7,7 +7,10 @@ import type {
   CreateTransactionRequest,
   CreateTransactionResponse,
   ListTransactionsResponse,
+  SetTransactionActiveResponse,
   Transaction as TransactionResponse,
+  UpdateTransactionRequest,
+  UpdateTransactionResponse,
 } from '@gestor-finanzas/contracts';
 import type { Account, NewTransaction, Transaction } from '@gestor-finanzas/models';
 import { AccountsRepository } from '../accounts/accounts.repository.js';
@@ -31,6 +34,7 @@ function toResponse(transaction: Transaction): TransactionResponse {
     categoryId: transaction.categoryId,
     occurredAt: transaction.occurredAt.toISOString(),
     notes: transaction.notes,
+    isActive: transaction.isActive,
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString(),
   };
@@ -53,20 +57,63 @@ export class TransactionsService {
   async create(
     input: CreateTransactionRequest,
   ): Promise<CreateTransactionResponse> {
+    const values = await this.buildValues(input);
+    const transaction = await this.transactionsRepository.create(values);
+
+    return { transaction: toResponse(transaction) };
+  }
+
+  async update(
+    id: string,
+    input: UpdateTransactionRequest,
+  ): Promise<UpdateTransactionResponse> {
+    const values = await this.buildValues(input);
+    const transaction = await this.transactionsRepository.updateById(
+      id,
+      values,
+    );
+
+    if (!transaction) {
+      throw new NotFoundException({
+        code: 'TRANSACTION_NOT_FOUND',
+        message: 'No se encontró el movimiento solicitado.',
+      });
+    }
+
+    return { transaction: toResponse(transaction) };
+  }
+
+  async setActive(
+    id: string,
+    isActive: boolean,
+  ): Promise<SetTransactionActiveResponse> {
+    const transaction = await this.transactionsRepository.setActive(
+      id,
+      isActive,
+    );
+
+    if (!transaction) {
+      throw new NotFoundException({
+        code: 'TRANSACTION_NOT_FOUND',
+        message: 'No se encontró el movimiento solicitado.',
+      });
+    }
+
+    return { transaction: toResponse(transaction) };
+  }
+
+  private async buildValues(
+    input: CreateTransactionRequest,
+  ): Promise<NewTransaction> {
     const account = await this.requireActiveAccount(
       input.accountId,
       'La cuenta está inactiva.',
       'No se encontró la cuenta solicitada.',
     );
 
-    const values =
-      input.type === 'transfer'
-        ? await this.buildTransferValues(input, account)
-        : await this.buildIncomeExpenseValues(input, account);
-
-    const transaction = await this.transactionsRepository.create(values);
-
-    return { transaction: toResponse(transaction) };
+    return input.type === 'transfer'
+      ? this.buildTransferValues(input, account)
+      : this.buildIncomeExpenseValues(input, account);
   }
 
   private async requireActiveAccount(

@@ -42,6 +42,7 @@ const persistedTransaction: Transaction = {
   categoryId: category.id,
   occurredAt: new Date('2026-08-29T10:30:00.000Z'),
   notes: null,
+  isActive: true,
   createdAt: new Date('2026-08-29T12:00:00.000Z'),
   updatedAt: new Date('2026-08-29T12:00:00.000Z'),
 };
@@ -50,6 +51,8 @@ function createRepositories() {
   const transactionsRepository = {
     findAll: vi.fn(),
     create: vi.fn(),
+    updateById: vi.fn(),
+    setActive: vi.fn(),
   };
   const accountsRepository = { findById: vi.fn() };
   const categoriesRepository = { findById: vi.fn() };
@@ -299,6 +302,114 @@ describe('TransactionsService', () => {
     await expect(result).rejects.toBeInstanceOf(UnprocessableEntityException);
     await expect(result).rejects.toMatchObject({
       response: { code: 'TRANSACTION_CURRENCY_MISMATCH' },
+    });
+  });
+
+  it('updates a transaction, re-validating the same business rules as create', async () => {
+    const repositories = createRepositories();
+    repositories.accountsRepository.findById.mockResolvedValue(account);
+    repositories.categoriesRepository.findById.mockResolvedValue(category);
+    const updated = { ...persistedTransaction, amount: '5.0000' };
+    repositories.transactionsRepository.updateById.mockResolvedValue(updated);
+    const service = createService(repositories);
+
+    await expect(
+      service.update(persistedTransaction.id, {
+        ...incomeInput,
+        amount: '5.0000',
+      }),
+    ).resolves.toEqual({
+      transaction: {
+        ...updated,
+        occurredAt: '2026-08-29T10:30:00.000Z',
+        createdAt: '2026-08-29T12:00:00.000Z',
+        updatedAt: '2026-08-29T12:00:00.000Z',
+      },
+    });
+    expect(repositories.transactionsRepository.updateById).toHaveBeenCalledWith(
+      persistedTransaction.id,
+      {
+        type: 'income',
+        amount: '5.0000',
+        currency: 'GTQ',
+        accountId: account.id,
+        categoryId: category.id,
+        occurredAt: new Date('2026-08-29T10:30:00.000Z'),
+        notes: null,
+      },
+    );
+  });
+
+  it('throws NotFoundException when updating an unknown transaction', async () => {
+    const repositories = createRepositories();
+    repositories.accountsRepository.findById.mockResolvedValue(account);
+    repositories.categoriesRepository.findById.mockResolvedValue(category);
+    repositories.transactionsRepository.updateById.mockResolvedValue(
+      undefined,
+    );
+    const service = createService(repositories);
+
+    const result = service.update('missing-id', incomeInput);
+
+    await expect(result).rejects.toBeInstanceOf(NotFoundException);
+    await expect(result).rejects.toMatchObject({
+      response: { code: 'TRANSACTION_NOT_FOUND' },
+    });
+  });
+
+  it('re-validates business rules on update, not just on create', async () => {
+    const repositories = createRepositories();
+    repositories.accountsRepository.findById.mockResolvedValue({
+      ...account,
+      isActive: false,
+    });
+    const service = createService(repositories);
+
+    const result = service.update(persistedTransaction.id, incomeInput);
+
+    await expect(result).rejects.toBeInstanceOf(UnprocessableEntityException);
+    await expect(result).rejects.toMatchObject({
+      response: { code: 'TRANSACTION_ACCOUNT_INACTIVE' },
+    });
+    expect(repositories.transactionsRepository.updateById).not.toHaveBeenCalled();
+  });
+
+  it('sets the active flag and returns the public contract', async () => {
+    const repositories = createRepositories();
+    const deactivated = { ...persistedTransaction, isActive: false };
+    repositories.transactionsRepository.setActive.mockResolvedValue(
+      deactivated,
+    );
+    const service = createService(repositories);
+
+    await expect(
+      service.setActive(persistedTransaction.id, false),
+    ).resolves.toEqual({
+      transaction: {
+        ...deactivated,
+        occurredAt: '2026-08-29T10:30:00.000Z',
+        createdAt: '2026-08-29T12:00:00.000Z',
+        updatedAt: '2026-08-29T12:00:00.000Z',
+      },
+    });
+    expect(repositories.transactionsRepository.setActive).toHaveBeenCalledWith(
+      persistedTransaction.id,
+      false,
+    );
+  });
+
+  it('throws NotFoundException when setting active state on an unknown transaction', async () => {
+    const repositories = createRepositories();
+    repositories.transactionsRepository.setActive.mockResolvedValue(
+      undefined,
+    );
+    const service = createService(repositories);
+
+    const result = service.setActive('missing-id', false);
+
+    await expect(result).rejects.toBeInstanceOf(NotFoundException);
+    await expect(result).rejects.toMatchObject({
+      response: { code: 'TRANSACTION_NOT_FOUND' },
     });
   });
 });
