@@ -13,3 +13,4 @@ storybook-static/
 
 *.log
 .DS_Store
+.codegraph/
