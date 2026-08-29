@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { EmptyState } from "@gestor-finanzas/ui";
+import { CreateTransactionTriggerButton } from "@/src/features/transactions/components/create-transaction-trigger-button";
+import { TransactionsDashboard } from "@/src/features/transactions/components/transactions-dashboard";
+import { TransactionModalProvider } from "@/src/features/transactions/context/transaction-modal-context";
 import { SectionHeader } from "@/src/features/shell/components/section-header";
 import { SectionTemplate } from "@/src/features/shell/templates/section-template";
 
@@ -9,24 +11,21 @@ export const metadata: Metadata = {
 
 export default function MovimientosPage() {
   return (
-    <SectionTemplate
-      header={
-        <SectionHeader
-          title="Movimientos"
-          description="Registro de ingresos, gastos y transferencias."
-          breadcrumbItems={[
-            { label: "Resumen", href: "/" },
-            { label: "Movimientos" },
-          ]}
-        />
-      }
-      content={
-        <EmptyState
-          level={2}
-          title="Todavía no disponible"
-          description="El registro de movimientos está planificado para una próxima versión. Por ahora puedes administrar tus cuentas y categorías."
-        />
-      }
-    />
+    <TransactionModalProvider>
+      <SectionTemplate
+        header={
+          <SectionHeader
+            title="Movimientos"
+            description="Registra ingresos, gastos y transferencias entre cuentas."
+            breadcrumbItems={[
+              { label: "Resumen", href: "/" },
+              { label: "Movimientos" },
+            ]}
+            action={<CreateTransactionTriggerButton />}
+          />
+        }
+        content={<TransactionsDashboard />}
+      />
+    </TransactionModalProvider>
   );
 }
