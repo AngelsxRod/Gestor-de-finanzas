@@ -1,22 +1,26 @@
 import { ContentHeader } from "@gestor-finanzas/ui";
-import { DemoFormPanel } from "@/src/features/architecture-demo/components/demo-form-panel";
-import { ArchitectureDemoTemplate } from "@/src/features/architecture-demo/templates/architecture-demo-template";
-import { HealthStatusPanelContainer } from "@/src/features/health/components/health-status-panel-container";
+import { AccountsDashboard } from "@/src/features/accounts/components/accounts-dashboard";
+import { AccountsTemplate } from "@/src/features/accounts/templates/accounts-template";
+import { CategoriesDashboard } from "@/src/features/categories/components/categories-dashboard";
 
 export default function Home() {
   return (
-    <ArchitectureDemoTemplate
+    <AccountsTemplate
       intro={
         <ContentHeader
-          eyebrow="Scaffold técnico"
+          eyebrow="Finanzas personales"
           level={1}
           variant="display"
-          title="Gestor de finanzas"
-          description="Esta pantalla comprueba los contratos compartidos, la conexión con NestJS y la validación de formularios antes de construir la primera feature financiera."
+          title="Organiza tus cuentas"
+          description="Registra tus cuentas y conserva un punto de partida claro para los próximos movimientos."
         />
       }
-      status={<HealthStatusPanelContainer />}
-      form={<DemoFormPanel />}
+      content={
+        <div className="grid gap-[var(--ui-space-10)]">
+          <AccountsDashboard />
+          <CategoriesDashboard />
+        </div>
+      }
     />
   );
 }

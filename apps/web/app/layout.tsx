@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Gestor de finanzas",
-  description: "Base técnica para una aplicación personal de finanzas",
+  description: "Aplicación personal para organizar cuentas y finanzas",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
