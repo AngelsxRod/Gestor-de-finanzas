@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { validateEnvironment } from './config/environment.js';
+import { AccountsModule } from './modules/accounts/accounts.module.js';
+import { CategoriesModule } from './modules/categories/categories.module.js';
 import { DatabaseModule } from './modules/database/database.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 
@@ -12,6 +14,8 @@ import { HealthModule } from './modules/health/health.module.js';
       isGlobal: true,
       validate: validateEnvironment,
     }),
+    AccountsModule,
+    CategoriesModule,
     DatabaseModule,
     HealthModule,
   ],
