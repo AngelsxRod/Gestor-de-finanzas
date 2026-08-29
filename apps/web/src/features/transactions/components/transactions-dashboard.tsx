@@ -1,31 +1,61 @@
 "use client";
 
-import type { CreateTransactionRequest } from "@gestor-finanzas/contracts";
+import type {
+  CreateTransactionRequest,
+  Transaction,
+} from "@gestor-finanzas/contracts";
 import { Modal } from "@gestor-finanzas/ui";
 import { useAccountsQuery } from "../../accounts/hooks/use-accounts-query";
 import { useCategoriesQuery } from "../../categories/hooks/use-categories-query";
 import { TransactionApiError } from "../api/transaction-api-error";
 import { useTransactionModal } from "../context/transaction-modal-context";
 import { useCreateTransactionMutation } from "../hooks/use-create-transaction-mutation";
+import { useSetTransactionActiveMutation } from "../hooks/use-set-transaction-active-mutation";
+import {
+  toDatetimeLocalInputValue,
+  type TransactionFormValues,
+} from "../hooks/use-transaction-form";
 import { useTransactionsQuery } from "../hooks/use-transactions-query";
+import { useUpdateTransactionMutation } from "../hooks/use-update-transaction-mutation";
 import { TransactionForm } from "./transaction-form";
 import { TransactionsTable } from "./transactions-table";
+
+function toFormValues(transaction: Transaction): TransactionFormValues {
+  return {
+    type: transaction.type,
+    amount: transaction.amount,
+    accountId: transaction.accountId,
+    categoryId: transaction.categoryId ?? "",
+    transferAccountId: transaction.transferAccountId ?? "",
+    occurredAt: toDatetimeLocalInputValue(new Date(transaction.occurredAt)),
+    notes: transaction.notes ?? "",
+  };
+}
 
 export function TransactionsDashboard() {
   const transactionsQuery = useTransactionsQuery();
   const accountsQuery = useAccountsQuery();
   const categoriesQuery = useCategoriesQuery();
-  const { isOpen, close } = useTransactionModal();
+  const { state, close, openEdit } = useTransactionModal();
   const createTransaction = useCreateTransactionMutation();
+  const updateTransaction = useUpdateTransactionMutation();
+  const setActive = useSetTransactionActiveMutation();
+
+  const saveMutation =
+    state?.mode === "edit" ? updateTransaction : createTransaction;
 
   async function submit(values: CreateTransactionRequest) {
-    await createTransaction.mutateAsync(values);
+    if (state?.mode === "edit") {
+      await updateTransaction.mutateAsync({ id: state.item.id, input: values });
+    } else {
+      await createTransaction.mutateAsync(values);
+    }
     close();
   }
 
   const formError =
-    createTransaction.error instanceof TransactionApiError
-      ? createTransaction.error.message
+    saveMutation.error instanceof TransactionApiError
+      ? saveMutation.error.message
       : undefined;
 
   const accountsById = new Map(
@@ -59,19 +89,33 @@ export function TransactionsDashboard() {
           transactions={transactionsQuery.data.transactions}
           accountsById={accountsById}
           categoriesById={categoriesById}
+          onEdit={openEdit}
+          onToggleActive={(transaction) =>
+            setActive.mutate({
+              id: transaction.id,
+              isActive: !transaction.isActive,
+            })
+          }
+          togglingTransactionId={
+            setActive.isPending ? setActive.variables?.id : undefined
+          }
         />
       ) : null}
 
-      <Modal open={isOpen} onClose={close} labelledBy="transaction-form-title">
-        {isOpen && accountsQuery.isSuccess && categoriesQuery.isSuccess ? (
+      <Modal
+        open={state !== null}
+        onClose={close}
+        labelledBy="transaction-form-title"
+      >
+        {state !== null && accountsQuery.isSuccess && categoriesQuery.isSuccess ? (
           <TransactionForm
-            accounts={accountsQuery.data.accounts.filter(
-              (account) => account.isActive,
-            )}
-            categories={categoriesQuery.data.categories.filter(
-              (category) => category.isActive,
-            )}
-            isSubmitting={createTransaction.isPending}
+            mode={state.mode}
+            accounts={accountsQuery.data.accounts}
+            categories={categoriesQuery.data.categories}
+            initialValues={
+              state.mode === "edit" ? toFormValues(state.item) : undefined
+            }
+            isSubmitting={saveMutation.isPending}
             errorMessage={formError}
             onSubmit={submit}
           />

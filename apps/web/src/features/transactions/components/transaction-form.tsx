@@ -29,11 +29,25 @@ const transactionTypeLabels: Record<TransactionType, string> = {
   transfer: "Transferencia",
 };
 
+function accountOptionLabel(account: Account): string {
+  return account.isActive
+    ? `${account.name} (${account.currency})`
+    : `${account.name} (${account.currency}) — inactiva`;
+}
+
+function categoryOptionLabel(category: Category): string {
+  return category.isActive ? category.name : `${category.name} — inactiva`;
+}
+
+export type TransactionFormMode = "create" | "edit";
+
 export type TransactionFormProps = {
   accounts: Account[];
   categories: Category[];
   errorMessage?: string;
+  initialValues?: TransactionFormValues;
   isSubmitting: boolean;
+  mode?: TransactionFormMode;
   onSubmit: (values: CreateTransactionRequest) => Promise<void>;
   successMessage?: string;
 };
@@ -42,26 +56,40 @@ export function TransactionForm({
   accounts,
   categories,
   errorMessage,
+  initialValues,
   isSubmitting,
+  mode = "create",
   onSubmit,
   successMessage,
 }: TransactionFormProps) {
-  const form = useTransactionForm();
+  const form = useTransactionForm(initialValues);
   const errors = form.formState.errors;
   const type = form.watch("type");
   const accountId = form.watch("accountId");
+  const categoryId = form.watch("categoryId");
+  const transferAccountId = form.watch("transferAccountId");
 
-  const availableCategories = categories.filter(
-    (category) => category.type === type,
+  // An account/category deactivated after this movement was created must
+  // stay selectable in its own field (so editing shows and keeps its real
+  // value); it just won't appear as an option for anything else.
+  const accountOptions = accounts.filter(
+    (account) => account.isActive || account.id === accountId,
   );
   const transferCandidates = accounts.filter(
-    (account) => account.id !== accountId,
+    (account) =>
+      account.id !== accountId &&
+      (account.isActive || account.id === transferAccountId),
+  );
+  const availableCategories = categories.filter(
+    (category) =>
+      category.type === type &&
+      (category.isActive || category.id === categoryId),
   );
 
   async function submit(values: TransactionFormValues) {
     try {
       await onSubmit(toCreateTransactionRequest(values));
-      form.reset();
+      if (mode === "create") form.reset();
     } catch {
       // The mutation exposes its public error message through props.
     }
@@ -74,7 +102,7 @@ export function TransactionForm({
     >
       <ModalHeader>
         <Heading id="transaction-form-title" level={2} variant="section">
-          Nuevo movimiento
+          {mode === "edit" ? "Editar movimiento" : "Nuevo movimiento"}
         </Heading>
         <Text variant="small" tone="muted">
           Registra un ingreso, un gasto o una transferencia entre cuentas.
@@ -138,9 +166,9 @@ export function TransactionForm({
             })}
           >
             <option value="">Selecciona una cuenta</option>
-            {accounts.map((account) => (
+            {accountOptions.map((account) => (
               <option key={account.id} value={account.id}>
-                {account.name} ({account.currency})
+                {accountOptionLabel(account)}
               </option>
             ))}
           </Select>
@@ -161,7 +189,7 @@ export function TransactionForm({
               <option value="">Selecciona la cuenta destino</option>
               {transferCandidates.map((account) => (
                 <option key={account.id} value={account.id}>
-                  {account.name} ({account.currency})
+                  {accountOptionLabel(account)}
                 </option>
               ))}
             </Select>
@@ -181,7 +209,7 @@ export function TransactionForm({
               <option value="">Selecciona una categoría</option>
               {availableCategories.map((category) => (
                 <option key={category.id} value={category.id}>
-                  {category.name}
+                  {categoryOptionLabel(category)}
                 </option>
               ))}
             </Select>
@@ -232,7 +260,11 @@ export function TransactionForm({
 
       <ModalFooter>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Guardando…" : "Guardar movimiento"}
+          {isSubmitting
+            ? "Guardando…"
+            : mode === "edit"
+              ? "Guardar cambios"
+              : "Guardar movimiento"}
         </Button>
       </ModalFooter>
     </form>

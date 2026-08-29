@@ -58,6 +58,20 @@ export const WithError: Story = {
 export const Success: Story = {
   args: { successMessage: "El movimiento se guardó correctamente." },
 };
+export const Edit: Story = {
+  args: {
+    mode: "edit",
+    initialValues: {
+      type: "expense",
+      amount: "200.0000",
+      accountId: checkingAccount.id,
+      categoryId: groceriesCategory.id,
+      transferAccountId: "",
+      occurredAt: "2026-08-05T12:00",
+      notes: "Compra semanal",
+    },
+  },
+};
 
 export const ValidationAndExpenseSubmit: Story = {
   play: async ({ canvasElement, args }) => {

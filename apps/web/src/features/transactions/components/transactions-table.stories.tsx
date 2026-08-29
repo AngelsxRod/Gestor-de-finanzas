@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { TransactionsTable } from "./transactions-table";
 
 const account = {
@@ -44,6 +44,7 @@ const incomeTransaction = {
   categoryId: category.id,
   occurredAt: "2026-08-15T10:30:00.000Z",
   notes: "Pago mensual",
+  isActive: true,
   createdAt: "2026-08-15T10:30:00.000Z",
   updatedAt: "2026-08-15T10:30:00.000Z",
 };
@@ -56,6 +57,12 @@ const transferTransaction = {
   categoryId: null,
   occurredAt: "2026-08-20T09:00:00.000Z",
   notes: null,
+};
+
+const inactiveTransaction = {
+  ...incomeTransaction,
+  id: "f1700f2a-f1c2-4fc2-8432-ffb13bb24e70",
+  isActive: false,
 };
 
 const meta = {
@@ -73,14 +80,18 @@ export const Empty: Story = {
     transactions: [],
     accountsById,
     categoriesById,
+    onEdit: fn(),
+    onToggleActive: fn(),
   },
 };
 export const WithTransactions: Story = {
   args: {
     state: "success",
-    transactions: [transferTransaction, incomeTransaction],
+    transactions: [transferTransaction, incomeTransaction, inactiveTransaction],
     accountsById,
     categoriesById,
+    onEdit: fn(),
+    onToggleActive: fn(),
   },
 };
 export const Error: Story = {
@@ -88,4 +99,42 @@ export const Error: Story = {
 };
 export const Retrying: Story = {
   args: { state: "error", isRetrying: true, onRetry: fn() },
+};
+export const EditInteraction: Story = {
+  args: {
+    state: "success",
+    transactions: [incomeTransaction],
+    accountsById,
+    categoriesById,
+    onEdit: fn(),
+    onToggleActive: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "Editar" }),
+    );
+    if (args.state === "success") {
+      await expect(args.onEdit).toHaveBeenCalledWith(incomeTransaction);
+    }
+  },
+};
+export const ToggleActiveInteraction: Story = {
+  args: {
+    state: "success",
+    transactions: [incomeTransaction],
+    accountsById,
+    categoriesById,
+    onEdit: fn(),
+    onToggleActive: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "Desactivar" }),
+    );
+    if (args.state === "success") {
+      await expect(args.onToggleActive).toHaveBeenCalledWith(
+        incomeTransaction,
+      );
+    }
+  },
 };

@@ -45,8 +45,7 @@ const transactionFormSchema = z
 
 export type TransactionFormValues = z.infer<typeof transactionFormSchema>;
 
-function nowForDatetimeLocalInput(): string {
-  const date = new Date();
+export function toDatetimeLocalInputValue(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0");
 
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
@@ -54,16 +53,16 @@ function nowForDatetimeLocalInput(): string {
   )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export function useTransactionForm() {
+export function useTransactionForm(defaultValues?: TransactionFormValues) {
   return useForm({
     resolver: zodResolver(transactionFormSchema),
-    defaultValues: {
+    defaultValues: defaultValues ?? {
       type: "expense",
       amount: "",
       accountId: "",
       categoryId: "",
       transferAccountId: "",
-      occurredAt: nowForDatetimeLocalInput(),
+      occurredAt: toDatetimeLocalInputValue(new Date()),
       notes: "",
     },
   });

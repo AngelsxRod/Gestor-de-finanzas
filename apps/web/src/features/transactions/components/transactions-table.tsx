@@ -79,6 +79,9 @@ export type TransactionsTableProps =
       transactions: Transaction[];
       accountsById: Map<string, Account>;
       categoriesById: Map<string, Category>;
+      onEdit: (transaction: Transaction) => void;
+      onToggleActive: (transaction: Transaction) => void;
+      togglingTransactionId?: string;
     };
 
 export function TransactionsTable(props: TransactionsTableProps) {
@@ -136,6 +139,10 @@ export function TransactionsTable(props: TransactionsTableProps) {
                   <TableCell as="th">Categoría / destino</TableCell>
                   <TableCell as="th">Monto</TableCell>
                   <TableCell as="th">Notas</TableCell>
+                  <TableCell as="th">Estado</TableCell>
+                  <TableCell as="th">
+                    <span className="sr-only">Acciones</span>
+                  </TableCell>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -171,6 +178,36 @@ export function TransactionsTable(props: TransactionsTableProps) {
                       </Text>
                     </TableCell>
                     <TableCell>{transaction.notes ?? ""}</TableCell>
+                    <TableCell>
+                      <Badge tone={transaction.isActive ? "success" : "neutral"}>
+                        {transaction.isActive ? "Activo" : "Inactivo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-[var(--ui-space-2)]">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => props.onEdit(transaction)}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={
+                            props.togglingTransactionId === transaction.id
+                          }
+                          onClick={() => props.onToggleActive(transaction)}
+                        >
+                          {props.togglingTransactionId === transaction.id
+                            ? "Guardando…"
+                            : transaction.isActive
+                              ? "Desactivar"
+                              : "Reactivar"}
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
