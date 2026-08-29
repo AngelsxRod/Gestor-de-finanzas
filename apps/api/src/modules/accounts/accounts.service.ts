@@ -1,9 +1,12 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type {
   Account as AccountResponse,
   CreateAccountRequest,
   CreateAccountResponse,
   ListAccountsResponse,
+  SetAccountActiveResponse,
+  UpdateAccountRequest,
+  UpdateAccountResponse,
 } from '@gestor-finanzas/contracts';
 import type { Account } from '@gestor-finanzas/models';
 import { AccountsRepository } from './accounts.repository.js';
@@ -69,5 +72,52 @@ export class AccountsService {
 
       throw error;
     }
+  }
+
+  async update(
+    id: string,
+    input: UpdateAccountRequest,
+  ): Promise<UpdateAccountResponse> {
+    try {
+      const account = await this.accountsRepository.updateById(id, input);
+
+      if (!account) {
+        throw new NotFoundException({
+          code: 'ACCOUNT_NOT_FOUND',
+          message: 'No se encontró la cuenta solicitada.',
+        });
+      }
+
+      return { account: toResponse(account) };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      if (isAccountNameConflict(error)) {
+        throw new ConflictException({
+          code: 'ACCOUNT_NAME_CONFLICT',
+          message: 'Ya existe una cuenta con ese nombre.',
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  async setActive(
+    id: string,
+    isActive: boolean,
+  ): Promise<SetAccountActiveResponse> {
+    const account = await this.accountsRepository.setActive(id, isActive);
+
+    if (!account) {
+      throw new NotFoundException({
+        code: 'ACCOUNT_NOT_FOUND',
+        message: 'No se encontró la cuenta solicitada.',
+      });
+    }
+
+    return { account: toResponse(account) };
   }
 }

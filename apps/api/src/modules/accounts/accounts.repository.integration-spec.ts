@@ -72,4 +72,62 @@ describe('AccountsRepository integration', () => {
       },
     });
   });
+
+  it('updates an existing account and refreshes updatedAt', async () => {
+    const created = await repository.create({
+      name: 'Cuenta original',
+      type: 'cash',
+      currency: 'GTQ',
+      openingBalance: '0.0000',
+    });
+
+    const updated = await repository.updateById(created.id, {
+      name: 'Cuenta renombrada',
+      type: 'savings',
+      currency: 'USD',
+      openingBalance: '10.0000',
+    });
+
+    expect(updated).toMatchObject({
+      name: 'Cuenta renombrada',
+      type: 'savings',
+      currency: 'USD',
+      openingBalance: '10.0000',
+    });
+    expect(updated?.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      created.updatedAt.getTime(),
+    );
+  });
+
+  it('returns undefined when updating an account that does not exist', async () => {
+    await expect(
+      repository.updateById('00000000-0000-0000-0000-000000000000', {
+        name: 'Cuenta',
+        type: 'cash',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('toggles the active flag', async () => {
+    const created = await repository.create({
+      name: 'Cuenta activa',
+      type: 'cash',
+      currency: 'GTQ',
+      openingBalance: '0.0000',
+    });
+
+    const deactivated = await repository.setActive(created.id, false);
+    expect(deactivated).toMatchObject({ isActive: false });
+
+    const reactivated = await repository.setActive(created.id, true);
+    expect(reactivated).toMatchObject({ isActive: true });
+  });
+
+  it('returns undefined when setting active state on an unknown account', async () => {
+    await expect(
+      repository.setActive('00000000-0000-0000-0000-000000000000', false),
+    ).resolves.toBeUndefined();
+  });
 });

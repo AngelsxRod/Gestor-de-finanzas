@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
 import { accounts, type Account, type NewAccount } from '@gestor-finanzas/models';
 import { DatabaseService } from '../database/database.service.js';
 
@@ -22,6 +23,29 @@ export class AccountsRepository {
     if (!account) {
       throw new Error('Account insert did not return a record');
     }
+
+    return account;
+  }
+
+  async updateById(
+    id: string,
+    values: NewAccount,
+  ): Promise<Account | undefined> {
+    const [account] = await this.database.db
+      .update(accounts)
+      .set({ ...values, updatedAt: new Date() })
+      .where(eq(accounts.id, id))
+      .returning();
+
+    return account;
+  }
+
+  async setActive(id: string, isActive: boolean): Promise<Account | undefined> {
+    const [account] = await this.database.db
+      .update(accounts)
+      .set({ isActive, updatedAt: new Date() })
+      .where(eq(accounts.id, id))
+      .returning();
 
     return account;
   }

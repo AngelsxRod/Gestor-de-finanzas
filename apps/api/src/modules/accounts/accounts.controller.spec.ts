@@ -18,6 +18,8 @@ describe('AccountsController', () => {
     const service = {
       create: vi.fn().mockResolvedValue({ account }),
       list: vi.fn().mockResolvedValue({ accounts: [account] }),
+      update: vi.fn().mockResolvedValue({ account }),
+      setActive: vi.fn().mockResolvedValue({ account }),
     };
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AccountsController],
@@ -34,5 +36,43 @@ describe('AccountsController', () => {
     await expect(controller.create(input)).resolves.toEqual({ account });
     await expect(controller.list()).resolves.toEqual({ accounts: [account] });
     expect(service.create).toHaveBeenCalledWith(input);
+  });
+
+  it('delegates account update and active-state changes to the service', async () => {
+    const account = {
+      id: 'f1700f2a-f1c2-4fc2-8432-ffb13bb24e6e',
+      name: 'Caja renombrada',
+      type: 'cash' as const,
+      currency: 'GTQ',
+      openingBalance: '0.0000',
+      isActive: false,
+      createdAt: '2026-08-29T12:00:00.000Z',
+      updatedAt: '2026-08-29T12:00:00.000Z',
+    };
+    const service = {
+      update: vi.fn().mockResolvedValue({ account }),
+      setActive: vi.fn().mockResolvedValue({ account }),
+    };
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [AccountsController],
+      providers: [{ provide: AccountsService, useValue: service }],
+    }).compile();
+    const controller = module.get(AccountsController);
+    const input = {
+      name: 'Caja renombrada',
+      type: 'cash' as const,
+      currency: 'GTQ',
+      openingBalance: '0.0000',
+    };
+
+    await expect(controller.update(account.id, input)).resolves.toEqual({
+      account,
+    });
+    expect(service.update).toHaveBeenCalledWith(account.id, input);
+
+    await expect(
+      controller.setActive(account.id, { isActive: false }),
+    ).resolves.toEqual({ account });
+    expect(service.setActive).toHaveBeenCalledWith(account.id, false);
   });
 });
