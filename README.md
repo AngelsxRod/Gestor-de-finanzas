@@ -134,6 +134,8 @@ pnpm build
 
 Consulta [TESTING.md](TESTING.md) para ubicaciones, patrones y limitaciones verificadas.
 
+`pnpm lint`, `pnpm test` y `pnpm build` se ejecutan en integración continua ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) en cada push y pull request contra `main`. Los tests de integración y E2E contra PostgreSQL no corren en CI todavía, ya que requieren una base de datos disponible.
+
 ## Build y ejecución de producción
 
 El build conjunto es:
@@ -149,7 +151,7 @@ pnpm --filter @gestor-finanzas/web start
 pnpm --filter @gestor-finanzas/api start:prod
 ```
 
-El despliegue self-hosted mediante Docker Compose ya está definido: construye las aplicaciones, aplica migraciones pendientes y publica únicamente la web en loopback. Siguen sin estar definidos CI/CD, servicios de sistema y una estrategia formal de releases o rollback.
+El despliegue self-hosted mediante Docker Compose ya está definido: construye las aplicaciones, aplica migraciones pendientes y publica únicamente la web en loopback. La integración continua (lint, tests y build) ya está definida; siguen sin estar definidos el despliegue continuo, servicios de sistema y una estrategia formal de releases o rollback.
 
 ## Documentación
 

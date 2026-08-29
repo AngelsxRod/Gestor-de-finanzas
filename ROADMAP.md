@@ -22,11 +22,17 @@ Este archivo comunica prioridades, no fechas ni compromisos de release. El estad
 - [x] Implementar contratos, persistencia, endpoints e interfaz de categorías.
 - [x] Cubrir validación, duplicados por tipo, orden, estados visuales y accesibilidad.
 
-## Ahora
+## Tercer flujo vertical completado
 
-- Establecer integración continua para lint, tests y builds.
+- [x] Definir la desactivación reversible como única forma de "eliminar" cuentas y categorías (ADR-0002).
+- [x] Implementar edición y desactivación/reactivación en API e interfaz para ambos módulos.
+- [x] Rediseñar la web como un dashboard con shell de navegación, secciones por ruta y resumen general.
 
-## Después: producto mínimo incremental
+## Integración continua completada
+
+- [x] Establecer integración continua para lint, tests y builds (`.github/workflows/ci.yml`).
+
+## Producto mínimo incremental
 
 - Registrar ingresos, gastos y transferencias.
 - Consultar saldos e historial con filtros.
