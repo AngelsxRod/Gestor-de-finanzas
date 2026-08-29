@@ -141,4 +141,69 @@ describe('TransactionsRepository integration', () => {
       }),
     ).rejects.toMatchObject({ cause: { code: '23503' } });
   });
+
+  it('finds a transaction by id, updates it and toggles the active flag', async () => {
+    const account = await accountsRepository.create({
+      name: 'Cuenta principal',
+      type: 'checking',
+      currency: 'GTQ',
+      openingBalance: '0.0000',
+    });
+    const category = await categoriesRepository.create({
+      name: 'Salario',
+      type: 'income',
+    });
+    const created = await repository.create({
+      type: 'income',
+      amount: '100.0000',
+      currency: 'GTQ',
+      accountId: account.id,
+      categoryId: category.id,
+      occurredAt: new Date('2026-08-01T10:00:00.000Z'),
+    });
+
+    await expect(repository.findById(created.id)).resolves.toMatchObject({
+      id: created.id,
+      amount: '100.0000',
+    });
+    await expect(
+      repository.findById('00000000-0000-0000-0000-000000000000'),
+    ).resolves.toBeUndefined();
+
+    const updated = await repository.updateById(created.id, {
+      type: 'income',
+      amount: '150.0000',
+      currency: 'GTQ',
+      accountId: account.id,
+      categoryId: category.id,
+      occurredAt: new Date('2026-08-02T10:00:00.000Z'),
+    });
+    expect(updated).toMatchObject({ amount: '150.0000' });
+    expect(updated?.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      created.updatedAt.getTime(),
+    );
+
+    const deactivated = await repository.setActive(created.id, false);
+    expect(deactivated).toMatchObject({ isActive: false });
+
+    const reactivated = await repository.setActive(created.id, true);
+    expect(reactivated).toMatchObject({ isActive: true });
+  });
+
+  it('returns undefined when updating or setting active state on an unknown transaction', async () => {
+    await expect(
+      repository.updateById('00000000-0000-0000-0000-000000000000', {
+        type: 'transfer',
+        amount: '10.0000',
+        currency: 'GTQ',
+        accountId: '00000000-0000-0000-0000-000000000001',
+        transferAccountId: '00000000-0000-0000-0000-000000000002',
+        categoryId: null,
+        occurredAt: new Date('2026-08-20T10:00:00.000Z'),
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      repository.setActive('00000000-0000-0000-0000-000000000000', false),
+    ).resolves.toBeUndefined();
+  });
 });

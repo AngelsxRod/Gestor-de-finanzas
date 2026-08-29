@@ -613,6 +613,148 @@ describe('application (e2e)', () => {
       });
   });
 
+  it('/api/v1/transactions/:id (PATCH) validates, updates, re-validates business rules and reports not-found', async () => {
+    const checking = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Cuenta corriente',
+        type: 'checking',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const salary = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Salario', type: 'income' })
+      .expect(201);
+    const groceries = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Alimentación', type: 'expense' })
+      .expect(201);
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'income',
+        amount: '100',
+        accountId: checking.body.account.id,
+        categoryId: salary.body.category.id,
+        occurredAt: '2026-08-01T09:00',
+      })
+      .expect(201);
+    const transactionId = created.body.transaction.id;
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/transactions/${transactionId}`)
+      .send({ type: 'income', amount: '0', occurredAt: '2026-08-01T09:00' })
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      });
+
+    const updateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/transactions/${transactionId}`)
+      .send({
+        type: 'expense',
+        amount: '55.5',
+        accountId: checking.body.account.id,
+        categoryId: groceries.body.category.id,
+        occurredAt: '2026-08-02T10:00',
+        notes: 'Corregido',
+      })
+      .expect(200);
+    expect(updateResponse.body).toMatchObject({
+      transaction: {
+        id: transactionId,
+        type: 'expense',
+        amount: '55.5000',
+        categoryId: groceries.body.category.id,
+        notes: 'Corregido',
+      },
+    });
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/transactions/${transactionId}`)
+      .send({
+        type: 'income',
+        amount: '10',
+        accountId: checking.body.account.id,
+        categoryId: groceries.body.category.id,
+        occurredAt: '2026-08-02T10:00',
+      })
+      .expect(422)
+      .expect({
+        code: 'TRANSACTION_CATEGORY_TYPE_MISMATCH',
+        message: 'El tipo de categoría no coincide con el del movimiento.',
+      });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/transactions/00000000-0000-0000-0000-000000000000')
+      .send({
+        type: 'expense',
+        amount: '10',
+        accountId: checking.body.account.id,
+        categoryId: groceries.body.category.id,
+        occurredAt: '2026-08-02T10:00',
+      })
+      .expect(404)
+      .expect({
+        code: 'TRANSACTION_NOT_FOUND',
+        message: 'No se encontró el movimiento solicitado.',
+      });
+  });
+
+  it('/api/v1/transactions/:id/active (PATCH) toggles the active flag and reports not-found', async () => {
+    const checking = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Cuenta corriente',
+        type: 'checking',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const salary = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Salario', type: 'income' })
+      .expect(201);
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'income',
+        amount: '100',
+        accountId: checking.body.account.id,
+        categoryId: salary.body.category.id,
+        occurredAt: '2026-08-01T09:00',
+      })
+      .expect(201);
+    const transactionId = created.body.transaction.id;
+
+    const deactivateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/transactions/${transactionId}/active`)
+      .send({ isActive: false })
+      .expect(200);
+    expect(deactivateResponse.body).toMatchObject({
+      transaction: { id: transactionId, isActive: false },
+    });
+
+    const reactivateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/transactions/${transactionId}/active`)
+      .send({ isActive: true })
+      .expect(200);
+    expect(reactivateResponse.body).toMatchObject({
+      transaction: { id: transactionId, isActive: true },
+    });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/transactions/00000000-0000-0000-0000-000000000000/active')
+      .send({ isActive: false })
+      .expect(404)
+      .expect({
+        code: 'TRANSACTION_NOT_FOUND',
+        message: 'No se encontró el movimiento solicitado.',
+      });
+  });
+
   afterEach(async () => {
     await database.db.delete(transactions);
     await database.db.delete(categories);
