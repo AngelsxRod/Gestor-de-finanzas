@@ -32,7 +32,7 @@ El esquema de persistencia inicial ya existe, tiene una migración versionada y 
 
 Los Server Components son el valor predeterminado. Query Client, hooks, eventos y formularios se aíslan tras fronteras `"use client"`. React Query administra estado remoto interactivo; React Hook Form y Zod validan formularios. Axios usa `/api/v1` y Next.js reenvía `/api/*` a la API local.
 
-La ruta `/` compone en servidor la introducción y los flujos de cuentas y categorías. `AccountsDashboard` y `CategoriesDashboard` delimitan las regiones cliente que administran consultas, mutaciones, invalidación de caché y formularios. Ambas interfaces presentan estados de carga, error, vacío y éxito.
+La app es un dashboard con sidebar de navegación y encabezado por sección (`src/features/shell`): `/` es el resumen, `/cuentas` y `/categorias` alojan los flujos completos, y `/movimientos`, `/presupuestos`, `/configuracion` son secciones planificadas sin backend. `AccountsDashboard` y `CategoriesDashboard` delimitan las regiones cliente que administran consultas, mutaciones e invalidación de caché; sus formularios de alta y edición se presentan en un `Modal` (elemento `<dialog>` nativo) y sus listados en una tabla con acciones de editar y desactivar/reactivar por fila. Ambas interfaces presentan estados de carga, error, vacío y éxito.
 
 ## API
 
@@ -47,9 +47,13 @@ La ruta `/` compone en servidor la introducción y los flujos de cuentas y categ
 - `AccountsModule` contiene controller, servicio y un repository Drizzle específico.
 - `GET /api/v1/accounts` lista cuentas en orden estable por nombre e ID.
 - `POST /api/v1/accounts` valida, normaliza y crea una cuenta; los nombres duplicados devuelven un conflicto público sin detalles de PostgreSQL.
+- `PATCH /api/v1/accounts/:id` reemplaza los campos editables de una cuenta existente; responde 404 público si no existe.
+- `PATCH /api/v1/accounts/:id/active` activa o desactiva una cuenta (única forma de "eliminar", reversible; ver ADR-0002).
 - `CategoriesModule` contiene controller, servicio y un repository Drizzle específico.
 - `GET /api/v1/categories` lista categorías por tipo, nombre e ID.
 - `POST /api/v1/categories` recorta el nombre y permite duplicarlo solo entre tipos distintos.
+- `PATCH /api/v1/categories/:id` reemplaza los campos editables de una categoría existente; responde 404 público si no existe.
+- `PATCH /api/v1/categories/:id/active` activa o desactiva una categoría (misma semántica que en cuentas).
 
 Los repositories de cuentas y categorías son fronteras pequeñas alrededor de sus consultas Drizzle. No se introducen entidades de persistencia, CQRS, DDD o capas hexagonales mientras no exista una necesidad concreta. Nest Observe fue retirado porque el starter solo contenía credenciales placeholder.
 

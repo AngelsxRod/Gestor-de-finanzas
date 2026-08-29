@@ -2,7 +2,20 @@
 
 ## Implementación actual
 
-La ruta `/` muestra los flujos financieros responsive de cuentas y categorías, cada uno con formulario y listado en estados de carga, error, vacío y éxito. `packages/ui` aporta los tokens, atoms y molecules sin dominio.
+La aplicación es un dashboard financiero: un `AppShell` (Server Component) compone una barra lateral de navegación (`Sidebar`) y el área principal (`MainRegion`), y cada página arma su propio `SectionHeader` (título, breadcrumb, acción principal y botón de menú móvil) dentro de un `SectionTemplate`. La ruta `/` ("Resumen") muestra tarjetas de métrica y accesos rápidos a las demás secciones (feature `overview`, que reutiliza los hooks de React Query existentes de `accounts`/`categories` sin nuevas llamadas HTTP). Las rutas `/cuentas` y `/categorias` alojan los flujos completos: una tabla (`AccountsTable`/`CategoriesTable`) lista los registros con columna de estado (Activo/Inactivo) y acciones de editar y desactivar/reactivar por fila, y el botón principal del header ("Nueva cuenta"/"Nueva categoría") abre un `Modal` con el formulario de alta; el mismo formulario se reutiliza en modo edición. `/movimientos`, `/presupuestos` y `/configuracion` son páginas reales con un `EmptyState` ("próximamente"), sin fetching, para las secciones que aún no tienen backend. `packages/ui` aporta los tokens, atoms y molecules sin dominio.
+
+### Modal y tablas
+
+- `Modal`/`ModalHeader`/`ModalContent`/`ModalFooter` (`packages/ui/src/molecules/modal.tsx`) envuelven el elemento nativo `<dialog>`, controlado por `ref` + `showModal()`/`close()` — nunca por el atributo JSX `open`. El cierre por Escape o por click en el backdrop dispara el evento nativo `close`; el foco vuelve al elemento que abrió el modal. No se agregó ninguna librería de diálogos.
+- `Table`/`TableHeader`/`TableBody`/`TableRow`/`TableCell` (`packages/ui/src/molecules/table.tsx`) son la primitiva genérica de tabla: separan filas con `divide-y` en vez de bordes por celda y usan un encabezado de texto pequeño en mayúsculas, siguiendo la dirección de minimalismo monocromo.
+- El botón del header que abre el modal y el propio modal/tabla viven en componentes distintos (header vs. contenido de la página). Comparten estado mediante `createModalContext<T>()` (`src/features/shell/context/create-modal-context.tsx`), un factory que cada feature instancia con su propio tipo (`account-modal-context.ts`, `category-modal-context.ts`) siguiendo el mismo patrón "interleaving" que ya usa `ShellProvider` para el drawer del sidebar.
+- "Eliminar" nunca es un borrado físico: activa o desactiva el registro (ver [ADR-0002](../../docs/adr/0002-soft-delete-simetrico-cuentas-categorias.md)), es reversible y no requiere un modal de confirmación aparte.
+
+### Shell y secciones
+
+- `AppShell`, `Sidebar`, `NavLink`, `MobileMenuButton`, `Breadcrumb`, `SectionHeader` y `SectionTemplate` viven en `src/features/shell` (organisms/templates con conocimiento de la app y sus rutas).
+- `ShellProvider`/`useShell` (`src/features/shell/context/shell-context.tsx`) administran el único estado compartido del shell: si el drawer de navegación móvil está abierto.
+- `NAV_ITEMS` (`src/features/shell/config/nav-items.ts`) es la fuente única de las seis secciones del sidebar y alimenta también los accesos rápidos del Resumen.
 
 Atomic Design define límites de responsabilidad, no solo carpetas:
 
@@ -28,13 +41,15 @@ No se promueve un organism al package UI hasta demostrar más de un consumidor y
 
 Los tokens `--ui-*` del package compartido cubren canvas, superficies, texto, bordes, acción primaria, foco, éxito y error; además definen escala tipográfica, espaciado, radios y sombras. El tema se selecciona con `data-theme="light|dark"`; sin atributo, sigue `prefers-color-scheme`.
 
-La dirección visual actual es neutral y funcional. No existe todavía una identidad de marca completa.
+La dirección visual es un minimalismo monocromo refinado: sin color de marca, con sombras discretas (`--ui-shadow-panel` reducida) y bordes sutiles u opacos (por ejemplo, el borde del sidebar usa `/60` de opacidad). `Panel` admite `variant="flat"` (sin borde ni sombra) para contenedores como las tablas, donde el color de superficie ya basta para diferenciarlo del fondo.
 
 ## Layout y responsive
 
-- La estructura usa Flexbox y altura mínima completa.
-- El contenido principal tiene `max-w-5xl`.
-- Las tarjetas forman una columna y cambian a dos columnas en `lg`.
+- La estructura usa Flexbox y altura mínima completa. `AppShell` divide la pantalla en `Sidebar` + `MainRegion`.
+- El breakpoint `lg` (1024px) separa el sidebar estático de escritorio del drawer de navegación móvil: por debajo de `lg` el `<nav>` del sidebar se desliza fuera de pantalla (`invisible -translate-x-full`) y se controla con `ShellProvider`; a partir de `lg` es siempre visible y estático.
+- Mientras el drawer móvil está abierto, el contenido de `MainRegion` se marca `inert` para evitar que el foco de teclado se escape hacia el fondo sin necesitar un focus-trap manual; `ShellProvider` cierra el drawer automáticamente si la ventana cruza a tamaño de escritorio.
+- El contenido principal de cada sección tiene `max-w-6xl` (definido en `SectionTemplate`).
+- Las tarjetas forman una columna y cambian a dos o cuatro columnas en `sm`/`lg` según la sección.
 - El padding aumenta a partir de `sm` y `lg`.
 
 El espaciado significativo usa la escala `--ui-space-*`; Tailwind se usa como sintaxis de composición.
@@ -51,9 +66,12 @@ El espaciado significativo usa la escala `--ui-space-*`; Tailwind se usa como si
 
 ## Accesibilidad observable
 
-- Elementos semánticos `main`, `header`, `section`, encabezados y formulario.
+- Elementos semánticos `main`, `header`, `nav`, `section`, encabezados y formulario; un único landmark `<nav aria-label="Navegación principal">` compartido entre escritorio y móvil (no se duplica el sidebar).
+- El enlace activo del sidebar usa `aria-current="page"` con una distinción visual adicional (negrita y subrayado) que no depende solo del color.
+- El botón de menú móvil usa `aria-expanded`, `aria-controls` y `aria-label` dinámico; al abrir el drawer el foco se mueve al primer enlace, `Escape` lo cierra y al cerrarlo el foco regresa al botón que lo abrió.
 - Labels asociados, descripciones mediante `aria-describedby` y errores con `role="alert"`.
-- Estados de red y preview anunciados mediante regiones live.
+- Estados de red y preview anunciados mediante regiones live (incluida la sección de métricas del Resumen y el resultado de desactivar/reactivar una fila).
+- El `Modal` usa `aria-labelledby` hacia el título del formulario; al abrirse mueve el foco al primer campo (`autoFocus`) y al cerrarse lo devuelve al botón que lo abrió.
 - Botones con foco visible y estados disabled.
 - Tema oscuro según preferencias del sistema.
 - `lang="es"`, coherente con el contenido actual.
@@ -62,6 +80,5 @@ El espaciado significativo usa la escala `--ui-space-*`; Tailwind se usa como si
 
 No determinado a partir del código actual:
 
-- Navegación de producto.
-- Tablas, gráficas y visualizaciones financieras.
-- Notificaciones, diálogos e iconografía propia.
+- Gráficas y visualizaciones financieras.
+- Notificaciones e iconografía propia (el botón de menú móvil y los indicadores usan formas CSS, sin librería de iconos instalada). Los diálogos (`Modal`) y las tablas ya existen.

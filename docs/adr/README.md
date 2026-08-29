@@ -27,3 +27,4 @@ Estados permitidos: `propuesto`, `aceptado`, `rechazado`, `obsoleto` o `reemplaz
 ## Índice
 
 - [ADR-0001: PostgreSQL y Drizzle en un package de modelos](0001-postgresql-drizzle-en-models.md) — aceptado.
+- [ADR-0002: Desactivación reversible en vez de borrado físico para cuentas y categorías](0002-soft-delete-simetrico-cuentas-categorias.md) — aceptado.

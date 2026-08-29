@@ -19,9 +19,9 @@ pnpm test:storybook
 
 ## Estado
 
-La ruta `/` implementa los flujos de cuentas y categorías: consulta sus endpoints, presenta estados de carga, error, vacío y éxito, y permite crear registros. Después de guardar invalida la consulta correspondiente para actualizar el listado. Peticiones y respuestas se validan con los contratos Zod compartidos.
+La aplicación tiene un shell de dashboard (sidebar de navegación en escritorio, drawer accesible en móvil y encabezado por sección) con las rutas `/` (resumen con métricas), `/cuentas` y `/categorias` (flujos completos de creación, edición y desactivación) y `/movimientos`, `/presupuestos`, `/configuracion` (secciones planificadas en el roadmap, sin backend todavía, mostradas como "próximamente"). Cuentas y categorías consultan sus endpoints y muestran los registros en una tabla con estados de carga, error, vacío y éxito; el botón "Nueva cuenta"/"Nueva categoría" del header abre un modal con el formulario (el mismo formulario se reutiliza para editar), y cada fila permite editar o desactivar/reactivar el registro. Tras cualquier cambio se invalida la consulta correspondiente para actualizar la tabla. Peticiones y respuestas se validan con los contratos Zod compartidos.
 
-El código se organiza por features bajo `src/features`. Los componentes compartidos proceden de `@gestor-finanzas/ui`, las respuestas HTTP se validan con `@gestor-finanzas/contracts` y Storybook prueba el catálogo Atomic Design con Vitest, Playwright y axe.
+El código se organiza por features bajo `src/features`: `accounts` y `categories` (dominio), `overview` (resumen que reutiliza sus hooks de React Query) y `shell` (navegación, encabezado de sección y plantillas de layout). Los componentes compartidos proceden de `@gestor-finanzas/ui`, las respuestas HTTP se validan con `@gestor-finanzas/contracts` y Storybook prueba el catálogo Atomic Design con Vitest, Playwright y axe.
 
 El build carga Geist desde Google Fonts y requiere acceso de red o una copia disponible en caché.
 
