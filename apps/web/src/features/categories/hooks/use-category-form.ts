@@ -5,9 +5,9 @@ import {
 } from "@gestor-finanzas/contracts";
 import { useForm } from "react-hook-form";
 
-export function useCategoryForm() {
+export function useCategoryForm(defaultValues?: CreateCategoryRequest) {
   return useForm<CreateCategoryRequest>({
     resolver: zodResolver(createCategoryRequestSchema),
-    defaultValues: { name: "", type: "expense" },
+    defaultValues: defaultValues ?? { name: "", type: "expense" },
   });
 }

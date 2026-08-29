@@ -1,54 +1,94 @@
 "use client";
 
-import type { CreateCategoryRequest } from "@gestor-finanzas/contracts";
+import type {
+  Category,
+  CreateCategoryRequest,
+} from "@gestor-finanzas/contracts";
+import { Modal } from "@gestor-finanzas/ui";
 import { CategoryApiError } from "../api/category-api-error";
+import { useCategoryModal } from "../context/category-modal-context";
 import { useCategoriesQuery } from "../hooks/use-categories-query";
 import { useCreateCategoryMutation } from "../hooks/use-create-category-mutation";
+import { useSetCategoryActiveMutation } from "../hooks/use-set-category-active-mutation";
+import { useUpdateCategoryMutation } from "../hooks/use-update-category-mutation";
+import { CategoriesTable } from "./categories-table";
 import { CategoryForm } from "./category-form";
-import { CategoryList } from "./category-list";
+
+function toFormValues(category: Category): CreateCategoryRequest {
+  return { name: category.name, type: category.type };
+}
 
 export function CategoriesDashboard() {
   const categoriesQuery = useCategoriesQuery();
+  const { state, close, openEdit } = useCategoryModal();
   const createCategory = useCreateCategoryMutation();
+  const updateCategory = useUpdateCategoryMutation();
+  const setActive = useSetCategoryActiveMutation();
 
-  async function submit(input: CreateCategoryRequest) {
-    await createCategory.mutateAsync(input);
+  const saveMutation =
+    state?.mode === "edit" ? updateCategory : createCategory;
+
+  async function submit(values: CreateCategoryRequest) {
+    if (state?.mode === "edit") {
+      await updateCategory.mutateAsync({ id: state.item.id, input: values });
+    } else {
+      await createCategory.mutateAsync(values);
+    }
+    close();
   }
 
   const formError =
-    createCategory.error instanceof CategoryApiError
-      ? createCategory.error.message
+    saveMutation.error instanceof CategoryApiError
+      ? saveMutation.error.message
       : undefined;
 
   return (
     <section
       aria-label="Administración de categorías"
-      className="grid gap-[var(--ui-space-6)] lg:grid-cols-2 lg:items-start"
+      className="grid gap-[var(--ui-space-6)]"
     >
-      <CategoryForm
-        errorMessage={formError}
-        isSubmitting={createCategory.isPending}
-        onSubmit={submit}
-        successMessage={
-          createCategory.isSuccess
-            ? "La categoría se guardó correctamente."
-            : undefined
-        }
-      />
-      {categoriesQuery.isPending ? <CategoryList state="loading" /> : null}
+      {categoriesQuery.isPending ? <CategoriesTable state="loading" /> : null}
       {categoriesQuery.isError ? (
-        <CategoryList
+        <CategoriesTable
           state="error"
           isRetrying={categoriesQuery.isFetching}
           onRetry={() => void categoriesQuery.refetch()}
         />
       ) : null}
       {categoriesQuery.isSuccess ? (
-        <CategoryList
+        <CategoriesTable
           state="success"
           categories={categoriesQuery.data.categories}
+          onEdit={openEdit}
+          onToggleActive={(category) =>
+            setActive.mutate({
+              id: category.id,
+              isActive: !category.isActive,
+            })
+          }
+          togglingCategoryId={
+            setActive.isPending ? setActive.variables?.id : undefined
+          }
         />
       ) : null}
+
+      <Modal
+        open={state !== null}
+        onClose={close}
+        labelledBy="category-form-title"
+      >
+        {state !== null ? (
+          <CategoryForm
+            mode={state.mode}
+            initialValues={
+              state.mode === "edit" ? toFormValues(state.item) : undefined
+            }
+            isSubmitting={saveMutation.isPending}
+            errorMessage={formError}
+            onSubmit={submit}
+          />
+        ) : null}
+      </Modal>
     </section>
   );
 }

@@ -41,6 +41,12 @@ export const DuplicateName: Story = {
 export const Success: Story = {
   args: { successMessage: "La categoría se guardó correctamente." },
 };
+export const Edit: Story = {
+  args: {
+    mode: "edit",
+    initialValues: { name: "Alimentación", type: "expense" },
+  },
+};
 export const ValidationAndCreation: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
