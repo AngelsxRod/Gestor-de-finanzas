@@ -3,9 +3,11 @@ import {
   createTransactionRequestSchema,
   createTransactionResponseSchema,
   listTransactionsResponseSchema,
+  setTransactionActiveRequestSchema,
   transactionErrorResponseSchema,
   transactionOccurredAtFieldSchema,
   transactionSchema,
+  updateTransactionRequestSchema,
 } from './transactions.js';
 
 const incomeTransaction = {
@@ -18,6 +20,7 @@ const incomeTransaction = {
   categoryId: 'c9f2a1a0-4e9a-4a2e-9b0a-6a5b4d3c2f10',
   occurredAt: '2026-08-29T12:00:00.000Z',
   notes: null,
+  isActive: true,
   createdAt: '2026-08-29T12:00:00.000Z',
   updatedAt: '2026-08-29T12:00:00.000Z',
 } as const;
@@ -134,5 +137,45 @@ describe('transaction contracts', () => {
       code: 'TRANSACTION_CATEGORY_TYPE_MISMATCH',
       message: 'El tipo de categoría no coincide con el del movimiento.',
     });
+  });
+
+  it('accepts the public not-found error', () => {
+    expect(
+      transactionErrorResponseSchema.parse({
+        code: 'TRANSACTION_NOT_FOUND',
+        message: 'No se encontró el movimiento solicitado.',
+      }),
+    ).toEqual({
+      code: 'TRANSACTION_NOT_FOUND',
+      message: 'No se encontró el movimiento solicitado.',
+    });
+  });
+
+  it('normalizes a valid update request the same way as create', () => {
+    expect(
+      updateTransactionRequestSchema.parse({
+        type: 'expense',
+        amount: '10',
+        accountId: incomeTransaction.accountId,
+        categoryId: incomeTransaction.categoryId,
+        occurredAt: '2026-08-29T10:30',
+      }),
+    ).toEqual({
+      type: 'expense',
+      amount: '10.0000',
+      accountId: incomeTransaction.accountId,
+      categoryId: incomeTransaction.categoryId,
+      occurredAt: new Date('2026-08-29T10:30').toISOString(),
+      notes: undefined,
+    });
+  });
+
+  it('accepts a valid set-active request and rejects a non-boolean value', () => {
+    expect(setTransactionActiveRequestSchema.parse({ isActive: false })).toEqual(
+      { isActive: false },
+    );
+    expect(
+      setTransactionActiveRequestSchema.safeParse({ isActive: 'no' }).success,
+    ).toBe(false);
   });
 });

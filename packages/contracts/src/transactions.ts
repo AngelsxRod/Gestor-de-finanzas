@@ -89,6 +89,12 @@ export const createTransactionRequestSchema = z.discriminatedUnion('type', [
   createTransferRequestSchema,
 ]);
 
+export const updateTransactionRequestSchema = createTransactionRequestSchema;
+
+export const setTransactionActiveRequestSchema = z.strictObject({
+  isActive: z.boolean(),
+});
+
 export const transactionSchema = z.strictObject({
   id: z.uuid(),
   type: transactionTypeSchema,
@@ -99,6 +105,7 @@ export const transactionSchema = z.strictObject({
   categoryId: z.uuid().nullable(),
   occurredAt: z.iso.datetime({ offset: true }),
   notes: z.string().nullable(),
+  isActive: z.boolean(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
 });
@@ -107,12 +114,17 @@ export const createTransactionResponseSchema = z.strictObject({
   transaction: transactionSchema,
 });
 
+export const updateTransactionResponseSchema = createTransactionResponseSchema;
+
+export const setTransactionActiveResponseSchema = createTransactionResponseSchema;
+
 export const listTransactionsResponseSchema = z.strictObject({
   transactions: z.array(transactionSchema),
 });
 
 export const transactionErrorCodeSchema = z.enum([
   'VALIDATION_ERROR',
+  'TRANSACTION_NOT_FOUND',
   'TRANSACTION_ACCOUNT_NOT_FOUND',
   'TRANSACTION_ACCOUNT_INACTIVE',
   'TRANSACTION_CATEGORY_NOT_FOUND',
@@ -141,4 +153,16 @@ export type CreateTransactionResponse = z.infer<
 >;
 export type ListTransactionsResponse = z.infer<
   typeof listTransactionsResponseSchema
+>;
+export type UpdateTransactionRequest = z.infer<
+  typeof updateTransactionRequestSchema
+>;
+export type UpdateTransactionResponse = z.infer<
+  typeof updateTransactionResponseSchema
+>;
+export type SetTransactionActiveRequest = z.infer<
+  typeof setTransactionActiveRequestSchema
+>;
+export type SetTransactionActiveResponse = z.infer<
+  typeof setTransactionActiveResponseSchema
 >;
