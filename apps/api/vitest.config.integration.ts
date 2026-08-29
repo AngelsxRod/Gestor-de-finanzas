@@ -7,7 +7,6 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
-    include: ['**/*.spec.ts'],
-    exclude: ['**/*.integration-spec.ts'],
+    include: ['**/*.integration-spec.ts'],
   },
 });
