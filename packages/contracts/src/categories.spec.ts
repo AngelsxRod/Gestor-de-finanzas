@@ -5,12 +5,15 @@ import {
   createCategoryRequestSchema,
   createCategoryResponseSchema,
   listCategoriesResponseSchema,
+  setCategoryActiveRequestSchema,
+  updateCategoryRequestSchema,
 } from "./categories.js";
 
 const category = {
   id: "14b203a4-b6c4-4d2c-94e4-98d20e87d436",
   name: "Alimentación",
   type: "expense",
+  isActive: true,
   createdAt: "2026-08-29T12:00:00.000Z",
   updatedAt: "2026-08-29T12:00:00.000Z",
 } as const;
@@ -60,5 +63,29 @@ describe("category contracts", () => {
         message: "Ya existe una categoría con ese nombre y tipo.",
       }),
     ).toMatchObject({ code: "CATEGORY_NAME_CONFLICT" });
+    expect(
+      categoryErrorResponseSchema.parse({
+        code: "CATEGORY_NOT_FOUND",
+        message: "No se encontró la categoría solicitada.",
+      }),
+    ).toMatchObject({ code: "CATEGORY_NOT_FOUND" });
+  });
+
+  it("normalizes a valid update request the same way as create", () => {
+    expect(
+      updateCategoryRequestSchema.parse({
+        name: "  Alimentación  ",
+        type: "expense",
+      }),
+    ).toEqual({ name: "Alimentación", type: "expense" });
+  });
+
+  it("accepts a valid set-active request and rejects a non-boolean value", () => {
+    expect(setCategoryActiveRequestSchema.parse({ isActive: false })).toEqual(
+      { isActive: false },
+    );
+    expect(
+      setCategoryActiveRequestSchema.safeParse({ isActive: "no" }).success,
+    ).toBe(false);
   });
 });

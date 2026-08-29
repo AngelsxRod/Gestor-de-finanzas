@@ -17,13 +17,24 @@ export const categorySchema = z.strictObject({
   id: z.uuid(),
   name: z.string().min(1).max(100),
   type: categoryTypeSchema,
+  isActive: z.boolean(),
   createdAt: z.iso.datetime({ offset: true }),
   updatedAt: z.iso.datetime({ offset: true }),
+});
+
+export const updateCategoryRequestSchema = createCategoryRequestSchema;
+
+export const setCategoryActiveRequestSchema = z.strictObject({
+  isActive: z.boolean(),
 });
 
 export const createCategoryResponseSchema = z.strictObject({
   category: categorySchema,
 });
+
+export const updateCategoryResponseSchema = createCategoryResponseSchema;
+
+export const setCategoryActiveResponseSchema = createCategoryResponseSchema;
 
 export const listCategoriesResponseSchema = z.strictObject({
   categories: z.array(categorySchema),
@@ -32,6 +43,7 @@ export const listCategoriesResponseSchema = z.strictObject({
 export const categoryErrorCodeSchema = z.enum([
   'VALIDATION_ERROR',
   'CATEGORY_NAME_CONFLICT',
+  'CATEGORY_NOT_FOUND',
 ]);
 
 export const categoryErrorResponseSchema = z.strictObject({
@@ -49,4 +61,16 @@ export type CreateCategoryResponse = z.infer<
 >;
 export type ListCategoriesResponse = z.infer<
   typeof listCategoriesResponseSchema
+>;
+export type UpdateCategoryRequest = z.infer<
+  typeof updateCategoryRequestSchema
+>;
+export type UpdateCategoryResponse = z.infer<
+  typeof updateCategoryResponseSchema
+>;
+export type SetCategoryActiveRequest = z.infer<
+  typeof setCategoryActiveRequestSchema
+>;
+export type SetCategoryActiveResponse = z.infer<
+  typeof setCategoryActiveResponseSchema
 >;

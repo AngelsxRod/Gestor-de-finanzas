@@ -47,9 +47,19 @@ export const accountSchema = z.strictObject({
   updatedAt: z.iso.datetime({ offset: true }),
 });
 
+export const updateAccountRequestSchema = createAccountRequestSchema;
+
+export const setAccountActiveRequestSchema = z.strictObject({
+  isActive: z.boolean(),
+});
+
 export const createAccountResponseSchema = z.strictObject({
   account: accountSchema,
 });
+
+export const updateAccountResponseSchema = createAccountResponseSchema;
+
+export const setAccountActiveResponseSchema = createAccountResponseSchema;
 
 export const listAccountsResponseSchema = z.strictObject({
   accounts: z.array(accountSchema),
@@ -58,6 +68,7 @@ export const listAccountsResponseSchema = z.strictObject({
 export const accountErrorCodeSchema = z.enum([
   'VALIDATION_ERROR',
   'ACCOUNT_NAME_CONFLICT',
+  'ACCOUNT_NOT_FOUND',
 ]);
 
 export const accountErrorResponseSchema = z.strictObject({
@@ -72,3 +83,11 @@ export type AccountType = z.infer<typeof accountTypeSchema>;
 export type CreateAccountRequest = z.infer<typeof createAccountRequestSchema>;
 export type CreateAccountResponse = z.infer<typeof createAccountResponseSchema>;
 export type ListAccountsResponse = z.infer<typeof listAccountsResponseSchema>;
+export type UpdateAccountRequest = z.infer<typeof updateAccountRequestSchema>;
+export type UpdateAccountResponse = z.infer<typeof updateAccountResponseSchema>;
+export type SetAccountActiveRequest = z.infer<
+  typeof setAccountActiveRequestSchema
+>;
+export type SetAccountActiveResponse = z.infer<
+  typeof setAccountActiveResponseSchema
+>;

@@ -5,6 +5,8 @@ import {
   createAccountRequestSchema,
   createAccountResponseSchema,
   listAccountsResponseSchema,
+  setAccountActiveRequestSchema,
+  updateAccountRequestSchema,
 } from './accounts.js';
 
 const account = {
@@ -63,5 +65,42 @@ describe('account contracts', () => {
       code: 'ACCOUNT_NAME_CONFLICT',
       message: 'Ya existe una cuenta con ese nombre.',
     });
+  });
+
+  it('accepts the public not-found error', () => {
+    expect(
+      accountErrorResponseSchema.parse({
+        code: 'ACCOUNT_NOT_FOUND',
+        message: 'No se encontró la cuenta solicitada.',
+      }),
+    ).toEqual({
+      code: 'ACCOUNT_NOT_FOUND',
+      message: 'No se encontró la cuenta solicitada.',
+    });
+  });
+
+  it('normalizes a valid update request the same way as create', () => {
+    expect(
+      updateAccountRequestSchema.parse({
+        name: 'Cuenta principal',
+        type: 'checking',
+        currency: 'gtq',
+        openingBalance: '1250.5',
+      }),
+    ).toEqual({
+      name: 'Cuenta principal',
+      type: 'checking',
+      currency: 'GTQ',
+      openingBalance: '1250.5000',
+    });
+  });
+
+  it('accepts a valid set-active request and rejects a non-boolean value', () => {
+    expect(setAccountActiveRequestSchema.parse({ isActive: false })).toEqual({
+      isActive: false,
+    });
+    expect(
+      setAccountActiveRequestSchema.safeParse({ isActive: 'no' }).success,
+    ).toBe(false);
   });
 });
