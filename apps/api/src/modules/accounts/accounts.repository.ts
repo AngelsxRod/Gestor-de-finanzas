@@ -14,6 +14,15 @@ export class AccountsRepository {
       .orderBy(accounts.name, accounts.id);
   }
 
+  async findById(id: string): Promise<Account | undefined> {
+    const [account] = await this.database.db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, id));
+
+    return account;
+  }
+
   async create(values: NewAccount): Promise<Account> {
     const [account] = await this.database.db
       .insert(accounts)

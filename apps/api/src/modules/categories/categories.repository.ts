@@ -18,6 +18,15 @@ export class CategoriesRepository {
       .orderBy(categories.type, categories.name, categories.id);
   }
 
+  async findById(id: string): Promise<Category | undefined> {
+    const [category] = await this.database.db
+      .select()
+      .from(categories)
+      .where(eq(categories.id, id));
+
+    return category;
+  }
+
   async create(values: NewCategory): Promise<Category> {
     const [category] = await this.database.db
       .insert(categories)
