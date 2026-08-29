@@ -19,7 +19,7 @@ pnpm test:storybook
 
 ## Estado
 
-La ruta `/` muestra un scaffold técnico: consulta `GET /api/v1/health` mediante el rewrite de Next.js y presenta un formulario local validado con Zod. No hay persistencia ni funcionalidad financiera.
+La ruta `/` implementa los flujos de cuentas y categorías: consulta sus endpoints, presenta estados de carga, error, vacío y éxito, y permite crear registros. Después de guardar invalida la consulta correspondiente para actualizar el listado. Peticiones y respuestas se validan con los contratos Zod compartidos.
 
 El código se organiza por features bajo `src/features`. Los componentes compartidos proceden de `@gestor-finanzas/ui`, las respuestas HTTP se validan con `@gestor-finanzas/contracts` y Storybook prueba el catálogo Atomic Design con Vitest, Playwright y axe.
 

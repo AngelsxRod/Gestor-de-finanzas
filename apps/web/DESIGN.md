@@ -2,7 +2,7 @@
 
 ## Implementación actual
 
-La ruta `/` muestra un scaffold técnico responsive con estado de API y un formulario local. `packages/ui` aporta los tokens, atoms y molecules sin dominio.
+La ruta `/` muestra los flujos financieros responsive de cuentas y categorías, cada uno con formulario y listado en estados de carga, error, vacío y éxito. `packages/ui` aporta los tokens, atoms y molecules sin dominio.
 
 Atomic Design define límites de responsabilidad, no solo carpetas:
 
@@ -63,6 +63,5 @@ El espaciado significativo usa la escala `--ui-space-*`; Tailwind se usa como si
 No determinado a partir del código actual:
 
 - Navegación de producto.
-- Estado empty de colecciones.
 - Tablas, gráficas y visualizaciones financieras.
 - Notificaciones, diálogos e iconografía propia.

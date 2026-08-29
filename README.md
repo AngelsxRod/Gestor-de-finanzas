@@ -1,6 +1,6 @@
 # Gestor de finanzas
 
-Monorepo TypeScript para una futura aplicación personal de finanzas. El estado actual es un scaffold técnico: la web comprueba la conexión con NestJS y un formulario local validado, pero todavía no hay funciones financieras ni persistencia.
+Monorepo TypeScript para una aplicación personal de finanzas self-hosted. Los flujos implementados permiten crear y consultar cuentas y categorías desde la web mediante contratos Zod, una API NestJS y PostgreSQL con Drizzle. Los movimientos continúan solo en el esquema.
 
 ## Tecnologías y requisitos
 
@@ -27,7 +27,7 @@ packages/
 └── tooling/      # Marcador para futura configuración compartida
 ```
 
-La web depende de `contracts` y `ui`; la API depende de `contracts`. `models` define la frontera de persistencia y será consumido por la API al implementar el primer flujo financiero.
+La web depende de `contracts` y `ui`; la API depende de `contracts` y `models`. `DatabaseModule` integra la fábrica de conexión de `models`. Los flujos HTTP actuales son el health check y la creación y consulta de cuentas y categorías.
 
 ## Instalación
 
@@ -71,6 +71,8 @@ pnpm dev:api
 - Web: `http://127.0.0.1:3210`.
 - API: `http://127.0.0.1:3211`.
 - Health check de la API: `GET /api/v1/health`.
+- Cuentas: `GET /api/v1/accounts` y `POST /api/v1/accounts`.
+- Categorías: `GET /api/v1/categories` y `POST /api/v1/categories`.
 
 Next.js redirige las peticiones `/api/*` al backend local, de modo que el navegador usa un único origen.
 
@@ -102,6 +104,14 @@ pnpm db:check
 
 Revisa siempre el SQL generado antes de versionarlo. No edites una migración aplicada en otro entorno.
 
+El modelo inicial contiene:
+
+- cuentas de efectivo, corriente, ahorro, crédito o inversión, con moneda y saldo de apertura;
+- categorías de ingreso o gasto;
+- movimientos de ingreso, gasto o transferencia, con integridad referencial y restricciones de forma.
+
+La API ya lee y escribe `accounts` y `categories` mediante repositories específicos. Los movimientos continúan únicamente como modelo persistente.
+
 Para ejecutar el stack self-hosted completo consulta [`DEPLOYMENT.md`](DEPLOYMENT.md). La configuración de producción aplica migraciones y levanta API/web en orden; solo publica la web en loopback.
 
 ## Calidad, tests y build
@@ -117,6 +127,7 @@ pnpm build
 - `pnpm test:storybook` ejecuta directamente interacciones y accesibilidad del catálogo visual.
 - `pnpm build:storybook` genera el catálogo estático.
 - Los E2E de la API se ejecutan por separado con `pnpm --filter @gestor-finanzas/api test:e2e`.
+- La integración con PostgreSQL se ejecuta con `pnpm --filter @gestor-finanzas/api test:integration` contra una base aislada cuyo nombre termine en `_test`.
 - La cobertura de la API se obtiene con `pnpm --filter @gestor-finanzas/api test:cov`.
 - No existe script `typecheck`.
 - El build web descarga Geist desde Google Fonts y requiere red o caché disponible.
@@ -138,14 +149,14 @@ pnpm --filter @gestor-finanzas/web start
 pnpm --filter @gestor-finanzas/api start:prod
 ```
 
-No determinado a partir del repositorio actual: proceso de despliegue self-hosted, CI/CD, Docker, servicios de sistema o estrategia de release.
+El despliegue self-hosted mediante Docker Compose ya está definido: construye las aplicaciones, aplica migraciones pendientes y publica únicamente la web en loopback. Siguen sin estar definidos CI/CD, servicios de sistema y una estrategia formal de releases o rollback.
 
 ## Documentación
 
 - [AGENTS.md](AGENTS.md): instrucciones y router para agentes.
 - [ARCHITECTURE.md](ARCHITECTURE.md): arquitectura efectiva y límites entre workspaces.
 - [CONTRIBUTING.md](CONTRIBUTING.md): ramas, commits, pull requests y criterios para contribuir.
-- [DEPLOYMENT.md](DEPLOYMENT.md): estado y requisitos para futuros despliegues.
+- [DEPLOYMENT.md](DEPLOYMENT.md): desarrollo y despliegue self-hosted mediante Docker Compose.
 - [DESIGN.md](DESIGN.md): índice de documentación de diseño.
 - [ROADMAP.md](ROADMAP.md): prioridades del producto y trabajo futuro.
 - [STYLEGUIDE.md](STYLEGUIDE.md): convenciones globales y rutas a las guías locales.
@@ -155,4 +166,4 @@ No determinado a partir del repositorio actual: proceso de despliegue self-hoste
 - [`apps/web/README.md`](apps/web/README.md): aplicación web y documentación local.
 - [`apps/api/README.md`](apps/api/README.md): API y documentación local.
 - [`packages/models/README.md`](packages/models/README.md): esquema, migraciones y comandos de base de datos.
-- [`docs/architecture.md`](docs/architecture.md): intención futura; no representa funcionalidad ya construida.
+- [`docs/architecture.md`](docs/architecture.md): dirección objetivo; no sustituye la arquitectura implementada.

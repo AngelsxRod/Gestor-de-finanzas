@@ -6,7 +6,7 @@
 - Ubicación: junto al código bajo `src/`.
 - Patrón: `**/*.spec.ts`.
 - Configuración: `vitest.config.ts`.
-- El test existente crea un `TestingModule` con el controller y service de health.
+- Los tests existentes cubren health, configuración, conexión y controller/service de cuentas y categorías con dependencias aisladas.
 
 ## E2E
 
@@ -20,14 +20,15 @@
 
 ```bash
 pnpm --filter @gestor-finanzas/api test
+pnpm --filter @gestor-finanzas/api test:integration
 pnpm --filter @gestor-finanzas/api test:watch
 pnpm --filter @gestor-finanzas/api test:e2e
 pnpm --filter @gestor-finanzas/api test:cov
 pnpm --filter @gestor-finanzas/api test:debug
 ```
 
-`test` no incluye E2E. No hay mocks, fixtures, setup global, base de datos de pruebas ni umbrales de cobertura.
+`test` no incluye integración ni E2E. No hay fixtures, setup global ni umbrales de cobertura.
 
 El E2E necesita permisos para escuchar en red local.
 
-Vitest proporciona una `DATABASE_URL` sintácticamente válida para construir `AppModule`. Como el driver abre conexiones de forma diferida y el health check no consulta PostgreSQL, estos tests no requieren una base real. Los futuros tests de repositories deberán usar una base aislada y aplicar migraciones antes de ejecutarse.
+Los unitarios no requieren una base real. `test:integration` prueba `AccountsRepository` y `CategoriesRepository`, y los E2E prueban health, cuentas y categorías contra PostgreSQL. Ambos requieren `DATABASE_URL` apuntando a una base migrada cuyo nombre termine en `_test`; limpian `accounts` y `categories` y nunca deben ejecutarse contra desarrollo o producción.

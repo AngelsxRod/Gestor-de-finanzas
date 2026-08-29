@@ -15,7 +15,7 @@ Estas reglas complementan el `AGENTS.md` de la raíz y se aplican a `apps/api`.
 - Conserva la separación por feature modules entre módulo, controlador y servicio.
 - Mantén el prefijo `/api/v1` y aplica `configureApp()` en cualquier bootstrap o test de integración.
 - Usa `@gestor-finanzas/contracts` para los contratos HTTP compartidos.
-- No introduzcas persistencia o autenticación como si ya fueran convenciones existentes.
+- Usa el flujo de cuentas como referencia mínima para persistencia; no generalices su repository o servicio sin una necesidad demostrada. La autenticación todavía no es una convención existente.
 - No pongas secretos reales en `app.module.ts` ni en archivos versionados.
 - La API debe seguir enlazada a `127.0.0.1` salvo que el cambio incluya los controles de seguridad necesarios.
 

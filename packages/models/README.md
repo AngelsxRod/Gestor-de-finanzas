@@ -15,7 +15,7 @@ pnpm --filter @gestor-finanzas/models db:migrate
 pnpm --filter @gestor-finanzas/models db:studio
 ```
 
-`db:generate` crea migraciones en `drizzle/` a partir del esquema. Revisa el SQL generado antes de versionarlo. `db:migrate` y `db:studio` usan `DATABASE_URL`; nunca incluyas credenciales reales en Git.
+`db:generate` crea migraciones en `drizzle/` a partir del esquema. Revisa el SQL generado antes de versionarlo. `db:migrate` y `db:studio` usan `DATABASE_URL` del entorno o cargan el `.env` de la raíz; nunca incluyas credenciales reales en Git.
 
 ## Responsabilidades
 
@@ -25,3 +25,11 @@ pnpm --filter @gestor-finanzas/models db:studio
 - `drizzle.config.ts`: configuración exclusiva de Drizzle Kit.
 
 El package no contiene controladores, reglas de negocio, contratos HTTP ni componentes React. NestJS lo integra mediante `apps/api/src/modules/database`; otros consumidores deben crear y cerrar su propia conexión explícitamente.
+
+## Modelo actual
+
+- `accounts`: cuentas de efectivo, corriente, ahorro, crédito o inversión, con moneda, saldo de apertura y estado activo.
+- `categories`: categorías diferenciadas por ingreso o gasto.
+- `transactions`: ingresos, gastos y transferencias asociados a cuentas y, cuando corresponde, a una categoría.
+
+PostgreSQL garantiza importes positivos, monedas con tres letras mayúsculas, referencias protegidas y la forma estructural de cada tipo de movimiento. La futura capa de servicios deberá validar las reglas que cruzan tablas, incluida la compatibilidad de moneda y categoría.
