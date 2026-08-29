@@ -14,7 +14,7 @@
   --ui-color-success: #047857;
   --ui-color-success-indicator: #10b981;
   --ui-color-focus: #18181b;
-  --ui-shadow-panel: 0 1px 2px rgb(0 0 0 / 0.05);
+  --ui-shadow-panel: 0 1px 2px rgb(0 0 0 / 0.03);
 }
 
 [data-theme="dark"] {
@@ -32,7 +32,7 @@
   --ui-color-success: #34d399;
   --ui-color-success-indicator: #10b981;
   --ui-color-focus: #fafafa;
-  --ui-shadow-panel: 0 1px 2px rgb(0 0 0 / 0.35);
+  --ui-shadow-panel: 0 1px 2px rgb(0 0 0 / 0.25);
 }
 
 :root {
@@ -77,6 +77,6 @@
     --ui-color-success: #34d399;
     --ui-color-success-indicator: #10b981;
     --ui-color-focus: #fafafa;
-    --ui-shadow-panel: 0 1px 2px rgb(0 0 0 / 0.35);
+    --ui-shadow-panel: 0 1px 2px rgb(0 0 0 / 0.25);
   }
 }

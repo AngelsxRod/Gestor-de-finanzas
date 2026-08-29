@@ -1,13 +1,27 @@
 import type { ComponentProps } from "react";
 
-export type PanelProps = ComponentProps<"section">;
+export type PanelVariant = "default" | "flat";
+
+export type PanelProps = ComponentProps<"section"> & {
+  variant?: PanelVariant;
+};
 export type PanelHeaderProps = ComponentProps<"header">;
 export type PanelContentProps = ComponentProps<"div">;
 
-export function Panel({ className = "", ...props }: PanelProps) {
+const variantClasses: Record<PanelVariant, string> = {
+  default:
+    "border border-[var(--ui-color-border)] shadow-[var(--ui-shadow-panel)]",
+  flat: "",
+};
+
+export function Panel({
+  className = "",
+  variant = "default",
+  ...props
+}: PanelProps) {
   return (
     <section
-      className={`rounded-[var(--ui-radius-panel)] border border-[var(--ui-color-border)] bg-[var(--ui-color-surface)] p-[var(--ui-space-6)] shadow-[var(--ui-shadow-panel)] ${className}`}
+      className={`rounded-[var(--ui-radius-panel)] bg-[var(--ui-color-surface)] p-[var(--ui-space-6)] ${variantClasses[variant]} ${className}`}
       {...props}
     />
   );
