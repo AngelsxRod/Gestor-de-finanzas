@@ -6,7 +6,7 @@
 - Ubicación: junto al código bajo `src/`.
 - Patrón: `**/*.spec.ts`.
 - Configuración: `vitest.config.ts`.
-- Los tests existentes cubren health, configuración, conexión y controller/service de cuentas y categorías con dependencias aisladas.
+- Los tests existentes cubren health, configuración, conexión y controller/service de cuentas, categorías y movimientos con dependencias aisladas.
 
 ## E2E
 
@@ -31,4 +31,4 @@ pnpm --filter @gestor-finanzas/api test:debug
 
 El E2E necesita permisos para escuchar en red local.
 
-Los unitarios no requieren una base real. `test:integration` prueba `AccountsRepository` y `CategoriesRepository`, y los E2E prueban health, cuentas y categorías contra PostgreSQL. Ambos requieren `DATABASE_URL` apuntando a una base migrada cuyo nombre termine en `_test`; limpian `accounts` y `categories` y nunca deben ejecutarse contra desarrollo o producción.
+Los unitarios no requieren una base real. `test:integration` prueba `AccountsRepository`, `CategoriesRepository` y `TransactionsRepository`, y los E2E prueban health, cuentas, categorías y movimientos contra PostgreSQL. Ambos requieren `DATABASE_URL` apuntando a una base migrada cuyo nombre termine en `_test`; limpian `transactions`, `categories` y `accounts` (en ese orden, por las claves foráneas) y nunca deben ejecutarse contra desarrollo o producción. Como el spec de movimientos comparte las tablas `accounts` y `categories` con sus propios specs, `test:integration` corre los archivos en serie (`fileParallelism: false`) para evitar condiciones de carrera entre ellos.

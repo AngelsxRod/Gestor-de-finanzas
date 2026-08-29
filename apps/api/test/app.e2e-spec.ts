@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { accounts, categories } from '@gestor-finanzas/models';
+import { accounts, categories, transactions } from '@gestor-finanzas/models';
 import request from 'supertest';
 import { configureApp } from './../src/app.config.js';
 import { AppModule } from './../src/app.module.js';
@@ -25,6 +25,7 @@ describe('application (e2e)', () => {
     configureApp(app);
     await app.init();
     database = moduleFixture.get(DatabaseService);
+    await database.db.delete(transactions);
     await database.db.delete(categories);
     await database.db.delete(accounts);
   });
@@ -359,7 +360,261 @@ describe('application (e2e)', () => {
       });
   });
 
+  it('/api/v1/transactions (GET) returns an empty transaction collection', () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/transactions')
+      .expect(200)
+      .expect({ transactions: [] });
+  });
+
+  it('/api/v1/transactions (POST) validates, creates and lists income, expense and transfer movements', async () => {
+    const checking = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Cuenta corriente',
+        type: 'checking',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const savings = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Cuenta de ahorro',
+        type: 'savings',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const salary = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Salario', type: 'income' })
+      .expect(201);
+    const groceries = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Alimentación', type: 'expense' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'income',
+        amount: '0',
+        accountId: checking.body.account.id,
+        categoryId: salary.body.category.id,
+        occurredAt: '2026-08-29T10:30',
+      })
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      });
+
+    const income = await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'income',
+        amount: '1250.5',
+        accountId: checking.body.account.id,
+        categoryId: salary.body.category.id,
+        occurredAt: '2026-08-01T09:00',
+        notes: '  Pago mensual  ',
+      })
+      .expect(201);
+    expect(income.body).toMatchObject({
+      transaction: {
+        type: 'income',
+        amount: '1250.5000',
+        currency: 'GTQ',
+        accountId: checking.body.account.id,
+        transferAccountId: null,
+        categoryId: salary.body.category.id,
+        notes: 'Pago mensual',
+      },
+    });
+
+    const expense = await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'expense',
+        amount: '200',
+        accountId: checking.body.account.id,
+        categoryId: groceries.body.category.id,
+        occurredAt: '2026-08-05T12:00',
+      })
+      .expect(201);
+    expect(expense.body).toMatchObject({
+      transaction: { type: 'expense', amount: '200.0000' },
+    });
+
+    const transfer = await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'transfer',
+        amount: '300',
+        accountId: checking.body.account.id,
+        transferAccountId: savings.body.account.id,
+        occurredAt: '2026-08-10T15:00',
+      })
+      .expect(201);
+    expect(transfer.body).toMatchObject({
+      transaction: {
+        type: 'transfer',
+        amount: '300.0000',
+        accountId: checking.body.account.id,
+        transferAccountId: savings.body.account.id,
+        categoryId: null,
+      },
+    });
+
+    const list = await request(app.getHttpServer())
+      .get('/api/v1/transactions')
+      .expect(200);
+    expect(
+      list.body.transactions.map(
+        (transaction: { type: string }) => transaction.type,
+      ),
+    ).toEqual(['transfer', 'expense', 'income']);
+  });
+
+  it('/api/v1/transactions (POST) enforces account, category and currency business rules', async () => {
+    const checking = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Cuenta corriente',
+        type: 'checking',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const usdAccount = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Cuenta en dólares',
+        type: 'savings',
+        currency: 'USD',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const inactiveAccount = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Cuenta cerrada',
+        type: 'cash',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/accounts/${inactiveAccount.body.account.id}/active`)
+      .send({ isActive: false })
+      .expect(200);
+    const expenseCategory = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Transporte', type: 'expense' })
+      .expect(201);
+    const inactiveCategory = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Ocio', type: 'expense' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/categories/${inactiveCategory.body.category.id}/active`)
+      .send({ isActive: false })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'income',
+        amount: '10',
+        accountId: '00000000-0000-0000-0000-000000000000',
+        categoryId: expenseCategory.body.category.id,
+        occurredAt: '2026-08-01T09:00',
+      })
+      .expect(404)
+      .expect({
+        code: 'TRANSACTION_ACCOUNT_NOT_FOUND',
+        message: 'No se encontró la cuenta solicitada.',
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'expense',
+        amount: '10',
+        accountId: inactiveAccount.body.account.id,
+        categoryId: expenseCategory.body.category.id,
+        occurredAt: '2026-08-01T09:00',
+      })
+      .expect(422)
+      .expect({
+        code: 'TRANSACTION_ACCOUNT_INACTIVE',
+        message: 'La cuenta está inactiva.',
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'expense',
+        amount: '10',
+        accountId: checking.body.account.id,
+        categoryId: inactiveCategory.body.category.id,
+        occurredAt: '2026-08-01T09:00',
+      })
+      .expect(422)
+      .expect({
+        code: 'TRANSACTION_CATEGORY_INACTIVE',
+        message: 'La categoría está inactiva.',
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'income',
+        amount: '10',
+        accountId: checking.body.account.id,
+        categoryId: expenseCategory.body.category.id,
+        occurredAt: '2026-08-01T09:00',
+      })
+      .expect(422)
+      .expect({
+        code: 'TRANSACTION_CATEGORY_TYPE_MISMATCH',
+        message: 'El tipo de categoría no coincide con el del movimiento.',
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'transfer',
+        amount: '10',
+        accountId: checking.body.account.id,
+        transferAccountId: checking.body.account.id,
+        occurredAt: '2026-08-01T09:00',
+      })
+      .expect(422)
+      .expect({
+        code: 'TRANSACTION_SAME_ACCOUNT',
+        message:
+          'La cuenta destino debe ser diferente de la cuenta de origen.',
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'transfer',
+        amount: '10',
+        accountId: checking.body.account.id,
+        transferAccountId: usdAccount.body.account.id,
+        occurredAt: '2026-08-01T09:00',
+      })
+      .expect(422)
+      .expect({
+        code: 'TRANSACTION_CURRENCY_MISMATCH',
+        message: 'Las cuentas de la transferencia deben usar la misma moneda.',
+      });
+  });
+
   afterEach(async () => {
+    await database.db.delete(transactions);
     await database.db.delete(categories);
     await database.db.delete(accounts);
     await app.close();

@@ -130,4 +130,21 @@ describe('AccountsRepository integration', () => {
       repository.setActive('00000000-0000-0000-0000-000000000000', false),
     ).resolves.toBeUndefined();
   });
+
+  it('finds an account by id and returns undefined when it does not exist', async () => {
+    const created = await repository.create({
+      name: 'Cuenta principal',
+      type: 'checking',
+      currency: 'GTQ',
+      openingBalance: '0.0000',
+    });
+
+    await expect(repository.findById(created.id)).resolves.toMatchObject({
+      id: created.id,
+      name: 'Cuenta principal',
+    });
+    await expect(
+      repository.findById('00000000-0000-0000-0000-000000000000'),
+    ).resolves.toBeUndefined();
+  });
 });

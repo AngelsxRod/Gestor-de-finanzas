@@ -95,4 +95,19 @@ describe('CategoriesRepository integration', () => {
       repository.setActive('00000000-0000-0000-0000-000000000000', false),
     ).resolves.toBeUndefined();
   });
+
+  it('finds a category by id and returns undefined when it does not exist', async () => {
+    const created = await repository.create({
+      name: 'Salud',
+      type: 'expense',
+    });
+
+    await expect(repository.findById(created.id)).resolves.toMatchObject({
+      id: created.id,
+      name: 'Salud',
+    });
+    await expect(
+      repository.findById('00000000-0000-0000-0000-000000000000'),
+    ).resolves.toBeUndefined();
+  });
 });
