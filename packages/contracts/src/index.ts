@@ -46,3 +46,25 @@ export {
   type UpdateCategoryResponse,
 } from './categories.js';
 export { healthResponseSchema, type HealthResponse } from './health.js';
+export {
+  createExpenseRequestSchema,
+  createIncomeRequestSchema,
+  createTransactionRequestSchema,
+  createTransactionResponseSchema,
+  createTransferRequestSchema,
+  listTransactionsResponseSchema,
+  positiveDecimalAmountSchema,
+  transactionAmountRequestSchema,
+  transactionErrorCodeSchema,
+  transactionErrorResponseSchema,
+  transactionNotesRequestSchema,
+  transactionOccurredAtRequestSchema,
+  transactionSchema,
+  transactionTypeSchema,
+  type CreateTransactionRequest,
+  type CreateTransactionResponse,
+  type ListTransactionsResponse,
+  type Transaction,
+  type TransactionErrorResponse,
+  type TransactionType,
+} from './transactions.js';
