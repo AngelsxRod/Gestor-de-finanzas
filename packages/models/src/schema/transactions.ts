@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   index,
   numeric,
@@ -38,6 +39,7 @@ export const transactions = pgTable(
     }),
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
     notes: text('notes'),
+    isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
