@@ -58,6 +58,7 @@ export {
   transactionErrorCodeSchema,
   transactionErrorResponseSchema,
   transactionNotesRequestSchema,
+  transactionOccurredAtFieldSchema,
   transactionOccurredAtRequestSchema,
   transactionSchema,
   transactionTypeSchema,

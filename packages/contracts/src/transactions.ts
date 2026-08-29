@@ -28,16 +28,26 @@ export const transactionAmountRequestSchema = z
 
 const occurredAtInputPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 
-export const transactionOccurredAtRequestSchema = z
+function isValidOccurredAtInput(value: string): boolean {
+  return (
+    occurredAtInputPattern.test(value) &&
+    !Number.isNaN(new Date(value).getTime())
+  );
+}
+
+// Validates the "datetime-local" input shape without converting it, so a
+// form can check a field's value without pre-transforming it into the ISO
+// shape the wire schema below expects and re-transforms on submit — doing
+// both would double-convert the value and fail the second parse.
+export const transactionOccurredAtFieldSchema = z
   .string({ error: 'La fecha es obligatoria.' })
   .trim()
-  .refine(
-    (value) =>
-      occurredAtInputPattern.test(value) &&
-      !Number.isNaN(new Date(value).getTime()),
-    'Ingresa una fecha y hora válidas.',
-  )
-  .transform((value) => new Date(value).toISOString());
+  .refine(isValidOccurredAtInput, 'Ingresa una fecha y hora válidas.');
+
+export const transactionOccurredAtRequestSchema =
+  transactionOccurredAtFieldSchema.transform((value) =>
+    new Date(value).toISOString(),
+  );
 
 export const transactionNotesRequestSchema = z
   .string()

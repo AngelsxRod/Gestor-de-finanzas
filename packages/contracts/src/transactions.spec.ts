@@ -4,6 +4,7 @@ import {
   createTransactionResponseSchema,
   listTransactionsResponseSchema,
   transactionErrorResponseSchema,
+  transactionOccurredAtFieldSchema,
   transactionSchema,
 } from './transactions.js';
 
@@ -102,6 +103,25 @@ describe('transaction contracts', () => {
     };
 
     expect(transactionSchema.parse(transfer)).toEqual(transfer);
+  });
+
+  it('does not transform the datetime-local value, so submitting it unchanged to the wire schema still validates', () => {
+    // Regression: a web form must validate occurredAt with the field schema
+    // (no transform) and send that raw value as-is. Pre-transforming it on
+    // the client, then letting the wire schema below transform it again,
+    // double-converts the value and fails the second parse.
+    const rawValue = '2026-08-29T10:30';
+
+    expect(transactionOccurredAtFieldSchema.parse(rawValue)).toBe(rawValue);
+    expect(
+      createTransactionRequestSchema.safeParse({
+        type: 'income',
+        amount: '10',
+        accountId: incomeTransaction.accountId,
+        categoryId: incomeTransaction.categoryId,
+        occurredAt: rawValue,
+      }).success,
+    ).toBe(true);
   });
 
   it('accepts the public error codes for cross-table validation failures', () => {

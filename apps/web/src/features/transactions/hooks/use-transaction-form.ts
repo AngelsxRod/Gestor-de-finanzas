@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   transactionAmountRequestSchema,
   transactionNotesRequestSchema,
-  transactionOccurredAtRequestSchema,
+  transactionOccurredAtFieldSchema,
   transactionTypeSchema,
   type CreateTransactionRequest,
 } from "@gestor-finanzas/contracts";
@@ -16,7 +16,7 @@ const transactionFormSchema = z
     accountId: z.uuid({ error: "Selecciona una cuenta." }),
     categoryId: z.string(),
     transferAccountId: z.string(),
-    occurredAt: transactionOccurredAtRequestSchema,
+    occurredAt: transactionOccurredAtFieldSchema,
     notes: transactionNotesRequestSchema,
   })
   .superRefine((values, ctx) => {
