@@ -26,9 +26,9 @@ Copia `.env.example` de la raíz a `.env` y levanta la base de desarrollo con `d
 
 ## Estado
 
-La API expone `GET /api/v1/health`, organizado dentro de `HealthModule`. La respuesta se construye con el contrato Zod de `@gestor-finanzas/contracts` y la web la consume mediante el rewrite de Next.js.
+La API expone `GET /api/v1/health`, `GET /api/v1/accounts`, `POST /api/v1/accounts`, `GET /api/v1/categories` y `POST /api/v1/categories`. Las peticiones y respuestas públicas usan contratos Zod de `@gestor-finanzas/contracts`; la web las consume mediante el rewrite de Next.js.
 
-La aplicación registra un prefijo versionado, `StandardSchemaValidationPipe` y un `DatabaseModule` global. `DatabaseService` expone el cliente tipado de `@gestor-finanzas/models` y lo cierra durante el apagado. Todavía no hay repositories de dominio, autenticación ni autorización.
+La aplicación registra un prefijo versionado, `StandardSchemaValidationPipe` y un `DatabaseModule` global. `DatabaseService` expone el cliente tipado de `@gestor-finanzas/models` y lo cierra durante el apagado. `AccountsModule` y `CategoriesModule` implementan cada uno su controller, servicio y repository; los movimientos todavía no tienen comportamiento. No hay autenticación ni autorización.
 
 ## Documentación local
 

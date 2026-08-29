@@ -19,4 +19,4 @@ Herramientas locales:
 - `no-explicit-any` está desactivada.
 - Las promesas sin manejar generan advertencias.
 
-No hay una convención observable para logging, filtros de excepciones, repositories o persistencia porque esas piezas todavía no existen.
+La conexión y el esquema de persistencia pertenecen a `@gestor-finanzas/models` y su ciclo de vida se integra mediante `DatabaseModule`. Cuentas usa un repository pequeño para encapsular consultas Drizzle y un servicio para reglas y errores públicos; reutiliza ese patrón solo cuando otro flujo demuestre que encaja. Todavía no hay una convención observable para logging o filtros de excepciones.

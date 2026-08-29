@@ -36,6 +36,16 @@ pnpm --filter @gestor-finanzas/api test:e2e
 pnpm --filter @gestor-finanzas/api test:cov
 ```
 
+Los tests de cuentas y categorías contra PostgreSQL requieren una base aislada, migrada y con un nombre terminado en `_test`:
+
+```bash
+DATABASE_URL=postgres://usuario:contraseña@127.0.0.1:5432/gestor_finanzas_test pnpm db:migrate
+DATABASE_URL=postgres://usuario:contraseña@127.0.0.1:5432/gestor_finanzas_test pnpm --filter @gestor-finanzas/api test:integration
+DATABASE_URL=postgres://usuario:contraseña@127.0.0.1:5432/gestor_finanzas_test pnpm --filter @gestor-finanzas/api test:e2e
+```
+
+Estas pruebas limpian las tablas `accounts` y `categories`; nunca las apuntes a desarrollo o producción.
+
 Consulta [`apps/api/TESTING.md`](apps/api/TESTING.md) para los patrones, configuraciones y comandos propios de la API.
 
 ## Limitaciones conocidas

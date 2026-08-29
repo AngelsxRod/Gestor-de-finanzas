@@ -9,15 +9,15 @@ El repositorio usa pnpm 11.18.0, workspaces declarados en `pnpm-workspace.yaml` 
 | Ruta | Responsabilidad observada |
 | --- | --- |
 | `apps/web` | Aplicación Next.js 16 organizada por features, con React Query, Axios, React Hook Form, Zod y Tailwind CSS 4. |
-| `apps/api` | Aplicación NestJS 12 organizada por feature modules. Expone el health check versionado. |
+| `apps/api` | Aplicación NestJS 12 organizada por feature modules. Expone health y el flujo de cuentas. |
 | `packages/contracts` | Contratos HTTP compartidos mediante esquemas Zod y tipos inferidos. |
 | `packages/models` | Esquema Drizzle, conexión y migraciones PostgreSQL. No contiene reglas de negocio. |
 | `packages/ui` | Primitivas React compartidas organizadas con Atomic Design. |
 | `packages/api-client` | Marcador vacío para un futuro cliente de API. No contiene código ni genera contratos. |
 | `packages/tooling` | Marcador vacío para futura configuración compartida. |
-| `docs/architecture.md` | Documento de planificación futura; no describe por sí solo funcionalidad ya construida. |
+| `docs/architecture.md` | Dirección objetivo del producto; no describe por sí solo funcionalidad ya construida. |
 
-La web consume `contracts` y `ui`; la API consume `contracts`. `models` es propietario de la persistencia y será consumido por la API. `api-client` y `tooling` siguen sin consumidores.
+La web consume `contracts` y `ui`; la API consume `contracts` y `models`. `models` es propietario de la persistencia y la API integra su conexión mediante `DatabaseModule`. `api-client` y `tooling` siguen sin consumidores.
 
 ## Qué leer antes de cambiar algo
 
@@ -64,6 +64,7 @@ Para comandos propios de la API:
 ```bash
 pnpm --filter @gestor-finanzas/api test
 pnpm --filter @gestor-finanzas/api test:e2e
+pnpm --filter @gestor-finanzas/api test:integration
 pnpm --filter @gestor-finanzas/api test:cov
 pnpm --filter @gestor-finanzas/api build
 pnpm --filter @gestor-finanzas/api lint

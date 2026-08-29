@@ -2,7 +2,7 @@
 
 Primitivas visuales compartidas y tokens semánticos organizados con Atomic Design.
 
-- `atoms`: `Heading`, `Text`, `Eyebrow`, `Button`, `Input` y `Label`. Son elementos indivisibles sin conocimiento del dominio.
+- `atoms`: `Heading`, `Text`, `Eyebrow`, `Button`, `Input`, `Select` y `Label`. Son elementos indivisibles sin conocimiento del dominio.
 - `molecules`: `Field`, `ContentHeader` y la familia con exports nombrados `Panel`, `PanelHeader` y `PanelContent`. Resuelven composiciones pequeñas y reutilizables.
 
 `Heading` exige un `level` semántico y acepta un `variant` visual independiente. Elegir un tamaño nunca debe alterar la jerarquía del documento.

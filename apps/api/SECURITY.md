@@ -8,11 +8,11 @@
 
 ## Base de datos
 
-`DATABASE_URL` es obligatoria y se valida antes de crear la aplicación. `DatabaseService` cierra el cliente PostgreSQL durante el apagado ordenado. La URL contiene credenciales: no debe aparecer en logs, errores públicos o archivos versionados.
+`DATABASE_URL` es obligatoria y se valida antes de crear la aplicación. `DatabaseService` cierra el cliente PostgreSQL durante el apagado ordenado. La URL contiene credenciales: no debe aparecer en logs, errores públicos o archivos versionados. Los flujos de cuentas y categorías traducen únicamente sus restricciones de unicidad conocidas a errores públicos y no exponen consultas ni causas de PostgreSQL.
 
 ## Capacidades ausentes
 
-No existen autenticación, autorización, CORS explícito, Helmet, rate limiting, repositories de dominio, uploads, cifrado ni sesiones. `StandardSchemaValidationPipe` está registrado globalmente para los futuros esquemas de entrada.
+No existen autenticación, autorización, CORS explícito, Helmet, rate limiting, uploads, cifrado ni sesiones. `StandardSchemaValidationPipe` valida y transforma la entrada de cuentas y categorías; estas garantías de forma no sustituyen controles de identidad o permisos.
 
 ## Telemetría
 
