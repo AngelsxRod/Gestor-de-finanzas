@@ -1,24 +1,27 @@
-import { ContentHeader } from "@gestor-finanzas/ui";
-import { AccountsDashboard } from "@/src/features/accounts/components/accounts-dashboard";
-import { AccountsTemplate } from "@/src/features/accounts/templates/accounts-template";
-import { CategoriesDashboard } from "@/src/features/categories/components/categories-dashboard";
+import type { Metadata } from "next";
+import { OverviewMetrics } from "@/src/features/overview/components/overview-metrics";
+import { QuickLinks } from "@/src/features/overview/components/quick-links";
+import { SectionHeader } from "@/src/features/shell/components/section-header";
+import { SectionTemplate } from "@/src/features/shell/templates/section-template";
 
-export default function Home() {
+export const metadata: Metadata = {
+  title: "Resumen · Gestor de finanzas",
+};
+
+export default function ResumenPage() {
   return (
-    <AccountsTemplate
-      intro={
-        <ContentHeader
-          eyebrow="Finanzas personales"
-          level={1}
-          variant="display"
-          title="Organiza tus cuentas"
-          description="Registra tus cuentas y conserva un punto de partida claro para los próximos movimientos."
+    <SectionTemplate
+      header={
+        <SectionHeader
+          title="Resumen"
+          description="Vista general de tus finanzas."
+          breadcrumbItems={[{ label: "Resumen" }]}
         />
       }
       content={
         <div className="grid gap-[var(--ui-space-10)]">
-          <AccountsDashboard />
-          <CategoriesDashboard />
+          <OverviewMetrics />
+          <QuickLinks />
         </div>
       }
     />
