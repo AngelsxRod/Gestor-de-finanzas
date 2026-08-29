@@ -1,6 +1,6 @@
 # Gestor de finanzas
 
-Monorepo TypeScript para una aplicación personal de finanzas self-hosted. Los flujos implementados permiten crear, editar y desactivar cuentas y categorías, y registrar movimientos (ingresos, gastos y transferencias) desde la web mediante contratos Zod, una API NestJS y PostgreSQL con Drizzle.
+Monorepo TypeScript para una aplicación personal de finanzas self-hosted. Los flujos implementados permiten crear, editar y desactivar cuentas, categorías y movimientos (ingresos, gastos y transferencias) desde la web mediante contratos Zod, una API NestJS y PostgreSQL con Drizzle.
 
 ## Tecnologías y requisitos
 
@@ -27,7 +27,7 @@ packages/
 └── tooling/      # Marcador para futura configuración compartida
 ```
 
-La web depende de `contracts` y `ui`; la API depende de `contracts` y `models`. `DatabaseModule` integra la fábrica de conexión de `models`. Los flujos HTTP actuales son el health check; la creación, consulta, edición y desactivación de cuentas y categorías; y la creación y consulta de movimientos.
+La web depende de `contracts` y `ui`; la API depende de `contracts` y `models`. `DatabaseModule` integra la fábrica de conexión de `models`. Los flujos HTTP actuales son el health check y la creación, consulta, edición y desactivación de cuentas, categorías y movimientos.
 
 ## Instalación
 
@@ -110,7 +110,7 @@ El modelo inicial contiene:
 - categorías de ingreso o gasto;
 - movimientos de ingreso, gasto o transferencia, con integridad referencial y restricciones de forma.
 
-La API ya lee y escribe `accounts`, `categories` y `transactions` mediante repositories específicos. Los movimientos todavía no admiten edición ni borrado.
+La API ya lee y escribe `accounts`, `categories` y `transactions` mediante repositories específicos.
 
 Para ejecutar el stack self-hosted completo consulta [`DEPLOYMENT.md`](DEPLOYMENT.md). La configuración de producción aplica migraciones y levanta API/web en orden; solo publica la web en loopback.
 

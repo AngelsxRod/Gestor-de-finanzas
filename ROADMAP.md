@@ -38,6 +38,12 @@ Este archivo comunica prioridades, no fechas ni compromisos de release. El estad
 - [x] Validar en la API lo que una sola tabla no puede expresar: cuentas y categorías activas, tipo de categoría coherente con el movimiento, y misma moneda entre las cuentas de una transferencia.
 - [x] Cubrir contratos, servicio, repository, endpoints e interfaz con pruebas.
 
+## Quinto flujo vertical completado
+
+- [x] Extender la desactivación reversible a movimientos (ADR-0003) y agregar edición, reutilizando en la API las mismas reglas de negocio que la creación.
+- [x] Agregar columna de estado y acciones (editar, desactivar/reactivar) a la tabla de movimientos.
+- [x] Cubrir contratos, servicio, repository, endpoints e interfaz con pruebas.
+
 ## Producto mínimo incremental
 
 - Consultar saldos e historial con filtros.
