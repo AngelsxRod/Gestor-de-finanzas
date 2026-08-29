@@ -14,4 +14,19 @@ export {
   type CreateAccountResponse,
   type ListAccountsResponse,
 } from './accounts.js';
+export {
+  categoryErrorCodeSchema,
+  categoryErrorResponseSchema,
+  categorySchema,
+  categoryTypeSchema,
+  createCategoryRequestSchema,
+  createCategoryResponseSchema,
+  listCategoriesResponseSchema,
+  type Category,
+  type CategoryErrorResponse,
+  type CategoryType,
+  type CreateCategoryRequest,
+  type CreateCategoryResponse,
+  type ListCategoriesResponse,
+} from './categories.js';
 export { healthResponseSchema, type HealthResponse } from './health.js';
