@@ -37,8 +37,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   {
     href: "/movimientos",
     label: "Movimientos",
-    description: "Registro de ingresos y gastos",
-    status: "coming-soon",
+    description: "Registra ingresos, gastos y transferencias",
+    status: "available",
   },
   {
     href: "/presupuestos",
