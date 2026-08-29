@@ -32,9 +32,14 @@ Este archivo comunica prioridades, no fechas ni compromisos de release. El estad
 
 - [x] Establecer integración continua para lint, tests y builds (`.github/workflows/ci.yml`).
 
+## Cuarto flujo vertical completado
+
+- [x] Implementar contratos, persistencia, endpoints e interfaz para registrar ingresos, gastos y transferencias.
+- [x] Validar en la API lo que una sola tabla no puede expresar: cuentas y categorías activas, tipo de categoría coherente con el movimiento, y misma moneda entre las cuentas de una transferencia.
+- [x] Cubrir contratos, servicio, repository, endpoints e interfaz con pruebas.
+
 ## Producto mínimo incremental
 
-- Registrar ingresos, gastos y transferencias.
 - Consultar saldos e historial con filtros.
 - Implementar presupuestos y resúmenes mensuales.
 - Cubrir cada flujo con tests unitarios, de integración y E2E proporcionales a su riesgo.
