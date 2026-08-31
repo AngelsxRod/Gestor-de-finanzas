@@ -42,6 +42,9 @@ services:
       HOST: 0.0.0.0
       PORT: 3211
       DATABASE_URL: ${DATABASE_URL:?Define DATABASE_URL}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?Define ADMIN_USERNAME}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?Define ADMIN_PASSWORD_HASH}
+      SESSION_SECRET: ${SESSION_SECRET:?Define SESSION_SECRET}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -67,6 +70,7 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: 3210
+      SESSION_SECRET: ${SESSION_SECRET:?Define SESSION_SECRET}
     ports:
       - "127.0.0.1:${APP_PORT:-3210}:3210"
     depends_on:
