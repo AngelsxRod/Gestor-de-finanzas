@@ -100,6 +100,47 @@ describe('TransactionsService', () => {
     });
   });
 
+  it('lists transactions without filters when the query is empty', async () => {
+    const repositories = createRepositories();
+    repositories.transactionsRepository.findAll.mockResolvedValue([]);
+    const service = createService(repositories);
+
+    await service.list();
+
+    expect(repositories.transactionsRepository.findAll).toHaveBeenCalledWith({
+      accountId: undefined,
+      categoryId: undefined,
+      type: undefined,
+      occurredFrom: undefined,
+      occurredTo: undefined,
+      isActive: undefined,
+    });
+  });
+
+  it('converts the isActive query string to a boolean filter', async () => {
+    const repositories = createRepositories();
+    repositories.transactionsRepository.findAll.mockResolvedValue([]);
+    const service = createService(repositories);
+
+    await service.list({
+      accountId: account.id,
+      categoryId: category.id,
+      type: 'income',
+      occurredFrom: '2026-08-01',
+      occurredTo: '2026-08-31',
+      isActive: 'false',
+    });
+
+    expect(repositories.transactionsRepository.findAll).toHaveBeenCalledWith({
+      accountId: account.id,
+      categoryId: category.id,
+      type: 'income',
+      occurredFrom: '2026-08-01',
+      occurredTo: '2026-08-31',
+      isActive: false,
+    });
+  });
+
   it('maps repository balances to the public contract', async () => {
     const repositories = createRepositories();
     const balances = [

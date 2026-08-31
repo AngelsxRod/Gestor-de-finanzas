@@ -49,10 +49,16 @@ describe('TransactionsController', () => {
     };
 
     await expect(controller.create(input)).resolves.toEqual({ transaction });
-    await expect(controller.list()).resolves.toEqual({
+    await expect(controller.list({})).resolves.toEqual({
       transactions: [transaction],
     });
     expect(service.create).toHaveBeenCalledWith(input);
+
+    const filters = { accountId: transaction.accountId };
+    await expect(controller.list(filters)).resolves.toEqual({
+      transactions: [transaction],
+    });
+    expect(service.list).toHaveBeenCalledWith(filters);
 
     await expect(controller.listBalances()).resolves.toEqual({ balances });
 

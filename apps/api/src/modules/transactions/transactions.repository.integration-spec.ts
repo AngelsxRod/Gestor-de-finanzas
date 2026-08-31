@@ -207,6 +207,114 @@ describe('TransactionsRepository integration', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('filters transactions by account (as origin or transfer destination), category, type, date range and active state', async () => {
+    const origin = await accountsRepository.create({
+      name: 'Origen',
+      type: 'checking',
+      currency: 'GTQ',
+      openingBalance: '0.0000',
+    });
+    const destination = await accountsRepository.create({
+      name: 'Destino',
+      type: 'savings',
+      currency: 'GTQ',
+      openingBalance: '0.0000',
+    });
+    const other = await accountsRepository.create({
+      name: 'Otra cuenta',
+      type: 'cash',
+      currency: 'GTQ',
+      openingBalance: '0.0000',
+    });
+    const incomeCategory = await categoriesRepository.create({
+      name: 'Salario',
+      type: 'income',
+    });
+    const expenseCategory = await categoriesRepository.create({
+      name: 'Comida',
+      type: 'expense',
+    });
+
+    const income = await repository.create({
+      type: 'income',
+      amount: '100.0000',
+      currency: 'GTQ',
+      accountId: origin.id,
+      categoryId: incomeCategory.id,
+      occurredAt: new Date('2026-08-05T10:00:00.000Z'),
+    });
+    const expense = await repository.create({
+      type: 'expense',
+      amount: '20.0000',
+      currency: 'GTQ',
+      accountId: origin.id,
+      categoryId: expenseCategory.id,
+      occurredAt: new Date('2026-08-10T10:00:00.000Z'),
+    });
+    const transfer = await repository.create({
+      type: 'transfer',
+      amount: '30.0000',
+      currency: 'GTQ',
+      accountId: origin.id,
+      transferAccountId: destination.id,
+      categoryId: null,
+      occurredAt: new Date('2026-08-15T10:00:00.000Z'),
+    });
+    const unrelated = await repository.create({
+      type: 'income',
+      amount: '5.0000',
+      currency: 'GTQ',
+      accountId: other.id,
+      categoryId: incomeCategory.id,
+      occurredAt: new Date('2026-08-20T10:00:00.000Z'),
+    });
+    await repository.setActive(expense.id, false);
+
+    await expect(
+      repository
+        .findAll({ accountId: origin.id })
+        .then((rows) => rows.map((row) => row.id)),
+    ).resolves.toEqual([transfer.id, expense.id, income.id]);
+
+    await expect(
+      repository
+        .findAll({ accountId: destination.id })
+        .then((rows) => rows.map((row) => row.id)),
+    ).resolves.toEqual([transfer.id]);
+
+    await expect(
+      repository
+        .findAll({ categoryId: expenseCategory.id })
+        .then((rows) => rows.map((row) => row.id)),
+    ).resolves.toEqual([expense.id]);
+
+    await expect(
+      repository
+        .findAll({ type: 'transfer' })
+        .then((rows) => rows.map((row) => row.id)),
+    ).resolves.toEqual([transfer.id]);
+
+    await expect(
+      repository
+        .findAll({ occurredFrom: '2026-08-10', occurredTo: '2026-08-15' })
+        .then((rows) => rows.map((row) => row.id)),
+    ).resolves.toEqual([transfer.id, expense.id]);
+
+    await expect(
+      repository
+        .findAll({ isActive: false })
+        .then((rows) => rows.map((row) => row.id)),
+    ).resolves.toEqual([expense.id]);
+
+    await expect(
+      repository
+        .findAll({ accountId: origin.id, isActive: true })
+        .then((rows) => rows.map((row) => row.id)),
+    ).resolves.toEqual([transfer.id, income.id]);
+
+    expect(unrelated.accountId).toBe(other.id);
+  });
+
   it('returns the opening balance for an account without transactions', async () => {
     const account = await accountsRepository.create({
       name: 'Sin movimientos',
