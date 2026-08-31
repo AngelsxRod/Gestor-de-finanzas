@@ -1,6 +1,7 @@
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import { accounts } from './accounts.js';
+import { budgets } from './budgets.js';
 import { categories } from './categories.js';
 import { transactions } from './transactions.js';
 
@@ -17,5 +18,6 @@ describe('finance schema', () => {
     expect(getTableConfig(accounts).checks).toHaveLength(2);
     expect(getTableConfig(categories).checks).toHaveLength(1);
     expect(getTableConfig(transactions).checks).toHaveLength(3);
+    expect(getTableConfig(budgets).checks).toHaveLength(3);
   });
 });
