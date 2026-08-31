@@ -50,9 +50,14 @@ Este archivo comunica prioridades, no fechas ni compromisos de release. El estad
 - [x] Agregar filtros opcionales por cuenta, categoría, tipo, rango de fechas y estado al historial de movimientos, en la API y en la interfaz.
 - [x] Cubrir el cálculo de saldos y los filtros con pruebas de contrato, unitarias y de integración.
 
+## Séptimo flujo vertical completado
+
+- [x] Definir el modelo de presupuestos mensuales por categoría de gasto, con moneda explícita y gasto siempre calculado (ADR-0004).
+- [x] Implementar contratos, persistencia, endpoints e interfaz para crear, editar, desactivar/reactivar y consultar presupuestos por mes, incluido el resumen de gastado y restante.
+- [x] Cubrir contratos, servicio, repository, endpoints e interfaz con pruebas.
+
 ## Producto mínimo incremental
 
-- Implementar presupuestos y resúmenes mensuales.
 - Cubrir cada flujo con tests unitarios, de integración y E2E proporcionales a su riesgo.
 - Automatizar backups y comprobar la restauración antes de usar información financiera real.
 - Definir autenticación, autorización y sesiones antes de almacenar información real o ampliar el acceso más allá de la computadora local.

@@ -20,7 +20,7 @@ Next.js
                     └─► PostgreSQL
 ```
 
-El siguiente flujo incorporará categorías; después vendrán movimientos, saldos e historial, presupuestos y resúmenes mensuales. Cada flujo debe incluir validación, manejo de errores y pruebas en las fronteras que afecte.
+Esa secuencia inicial ya se completó: categorías, movimientos, saldos e historial con filtros, y presupuestos con su resumen mensual. Cada flujo nuevo debe seguir incluyendo validación, manejo de errores y pruebas en las fronteras que afecte; el orden de lo que sigue vive en [`ROADMAP.md`](../ROADMAP.md), no en este documento.
 
 ## Responsabilidades objetivo
 
@@ -35,7 +35,7 @@ El flujo de cuentas demostró una separación pequeña entre controller, servici
 
 ## Persistencia y dinero
 
-PostgreSQL 18 y Drizzle ORM son la decisión vigente. El modelo inicial ya representa cuentas, categorías y movimientos, y utiliza `numeric(19,4)` como texto en TypeScript para conservar precisión.
+PostgreSQL 18 y Drizzle ORM son la decisión vigente. El modelo ya representa cuentas, categorías, movimientos y presupuestos, y utiliza `numeric(19,4)` como texto en TypeScript para conservar precisión.
 
 La API deberá asegurar las reglas que no pueden expresarse por completo con restricciones de una sola tabla, como compatibilidad de moneda, tipo de categoría y movimiento. Las transferencias entre monedas distintas y la contabilidad de partida doble permanecen fuera del MVP hasta que una nueva decisión de arquitectura las defina.
 
