@@ -17,7 +17,7 @@ gestor-de-finanzas
     └── tooling        marcador sin configuración
 ```
 
-El esquema de persistencia inicial ya existe, tiene migraciones versionadas y está integrado en el ciclo de vida de la API mediante `DatabaseModule`. Los flujos verticales de cuentas, categorías y movimientos funcionan de extremo a extremo, incluida su edición y desactivación reversible. Los movimientos todavía no tienen saldos calculados ni filtros de consulta.
+El esquema de persistencia inicial ya existe, tiene migraciones versionadas y está integrado en el ciclo de vida de la API mediante `DatabaseModule`. Los flujos verticales de cuentas, categorías y movimientos funcionan de extremo a extremo, incluida su edición y desactivación reversible, el saldo calculado por cuenta y los filtros de consulta del historial.
 
 ## Aplicación web
 
@@ -32,7 +32,7 @@ El esquema de persistencia inicial ya existe, tiene migraciones versionadas y es
 
 Los Server Components son el valor predeterminado. Query Client, hooks, eventos y formularios se aíslan tras fronteras `"use client"`. React Query administra estado remoto interactivo; React Hook Form y Zod validan formularios. Axios usa `/api/v1` y Next.js reenvía `/api/*` a la API local.
 
-La app es un dashboard con sidebar de navegación y encabezado por sección (`src/features/shell`): `/` es el resumen, `/cuentas`, `/categorias` y `/movimientos` alojan los flujos completos, y `/presupuestos`, `/configuracion` son secciones planificadas sin backend. `AccountsDashboard`, `CategoriesDashboard` y `TransactionsDashboard` delimitan las regiones cliente que administran consultas, mutaciones e invalidación de caché; sus formularios de alta y edición se presentan en un `Modal` (elemento `<dialog>` nativo) y sus listados en una tabla con acciones de editar y desactivar/reactivar por fila. `TransactionForm` alterna entre categoría y cuenta destino según el tipo elegido (ingreso, gasto o transferencia); pasa las cuentas y categorías completas (no solo las activas), para que editar un movimiento siga mostrando la cuenta o categoría que tenía asignada aunque haya sido desactivada después. `TransactionsTable` resuelve los nombres de cuenta y categoría del mismo modo. Todas las interfaces presentan estados de carga, error, vacío y éxito.
+La app es un dashboard con sidebar de navegación y encabezado por sección (`src/features/shell`): `/` es el resumen, `/cuentas`, `/categorias` y `/movimientos` alojan los flujos completos, y `/presupuestos`, `/configuracion` son secciones planificadas sin backend. `AccountsDashboard`, `CategoriesDashboard` y `TransactionsDashboard` delimitan las regiones cliente que administran consultas, mutaciones e invalidación de caché; sus formularios de alta y edición se presentan en un `Modal` (elemento `<dialog>` nativo) y sus listados en una tabla con acciones de editar y desactivar/reactivar por fila. `TransactionForm` alterna entre categoría y cuenta destino según el tipo elegido (ingreso, gasto o transferencia); pasa las cuentas y categorías completas (no solo las activas), para que editar un movimiento siga mostrando la cuenta o categoría que tenía asignada aunque haya sido desactivada después. `TransactionsTable` resuelve los nombres de cuenta y categoría del mismo modo. `AccountsDashboard` combina `useAccountsQuery` con `useAccountBalancesQuery` (feature `transactions`, ya que el saldo se deriva de `GET /api/v1/transactions/balances`) para que la columna "Saldo" de `AccountsTable` muestre el saldo real en vez del saldo de apertura estático; las tres mutaciones de movimientos invalidan también esa consulta. `TransactionsFilters` es un organism controlado (sin estado propio de formulario, a diferencia de los formularios de alta/edición) que administra `accountId`, `categoryId`, `type`, rango de fechas y estado mediante el hook `useTransactionFilters`, y `TransactionsDashboard` traduce esos valores a `ListTransactionsQuery` antes de pasarlos a `useTransactionsQuery`, cuya clave de caché incluye los filtros activos. Todas las interfaces presentan estados de carga, error, vacío y éxito.
 
 ## API
 
@@ -55,7 +55,8 @@ La app es un dashboard con sidebar de navegación y encabezado por sección (`sr
 - `PATCH /api/v1/categories/:id` reemplaza los campos editables de una categoría existente; responde 404 público si no existe.
 - `PATCH /api/v1/categories/:id/active` activa o desactiva una categoría (misma semántica que en cuentas).
 - `TransactionsModule` contiene controller, servicio y un repository Drizzle específico; importa `AccountsModule` y `CategoriesModule` para reutilizar sus repositories en vez de duplicar consultas.
-- `GET /api/v1/transactions` lista movimientos por fecha de ocurrencia, del más reciente al más antiguo.
+- `GET /api/v1/transactions/balances` devuelve el saldo de cada cuenta (`openingBalance` más la suma de sus movimientos activos: ingreso suma, gasto resta, transferencia resta en la cuenta origen y suma en la destino) calculado enteramente en SQL con `numeric`, nunca con aritmética de punto flotante en JS. Vive en `TransactionsModule`, no en `AccountsModule`, porque es una vista agregada sobre movimientos y la dependencia entre módulos ya es unidireccional (`TransactionsModule` → `AccountsModule`); `TransactionsRepository` importa la tabla `accounts` de `@gestor-finanzas/models` directamente para el `LEFT JOIN`, lo cual es una consulta Drizzle, no un acoplamiento de módulos NestJS.
+- `GET /api/v1/transactions` lista movimientos por fecha de ocurrencia, del más reciente al más antiguo, y acepta filtros opcionales por query string (`accountId`, `categoryId`, `type`, `occurredFrom`/`occurredTo` como fecha `YYYY-MM-DD` con límites inclusivos del día en hora local, `isActive`); sin filtros se comporta igual que antes de este flujo. `accountId` incluye los movimientos donde la cuenta participa como origen o como destino de una transferencia.
 - `POST /api/v1/transactions` crea un ingreso, gasto o transferencia. `TransactionsService` deriva la moneda del movimiento de la cuenta seleccionada (nunca la recibe del cliente) y valida las reglas que ninguna restricción de una sola tabla puede expresar: la cuenta (y, para transferencias, la cuenta destino) debe existir y estar activa; para ingresos y gastos, la categoría debe existir, estar activa y coincidir en tipo; para transferencias, la cuenta destino debe ser distinta de la de origen y compartir moneda con ella.
 - `PATCH /api/v1/transactions/:id` reemplaza los campos editables de un movimiento existente reutilizando exactamente las mismas reglas que `POST`; responde 404 público si no existe.
 - `PATCH /api/v1/transactions/:id/active` activa o desactiva un movimiento (única forma de "eliminar", reversible; ver ADR-0003).
@@ -98,7 +99,7 @@ Las decisiones y limitaciones del modelo inicial están registradas en [`ADR-000
 
 ```text
 Navegador
-  └─► apps/web /api/v1/health, /api/v1/accounts, /api/v1/categories y /api/v1/transactions
+  └─► apps/web /api/v1/health, /api/v1/accounts, /api/v1/categories, /api/v1/transactions y /api/v1/transactions/balances
         └─► rewrite de Next.js
               └─► apps/api
 

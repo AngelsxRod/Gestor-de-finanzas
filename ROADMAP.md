@@ -44,9 +44,14 @@ Este archivo comunica prioridades, no fechas ni compromisos de release. El estad
 - [x] Agregar columna de estado y acciones (editar, desactivar/reactivar) a la tabla de movimientos.
 - [x] Cubrir contratos, servicio, repository, endpoints e interfaz con pruebas.
 
+## Sexto flujo vertical completado
+
+- [x] Calcular el saldo real de cada cuenta (saldo de apertura más sus movimientos activos) en SQL, sin aritmética de punto flotante, y mostrarlo en la tabla de cuentas.
+- [x] Agregar filtros opcionales por cuenta, categoría, tipo, rango de fechas y estado al historial de movimientos, en la API y en la interfaz.
+- [x] Cubrir el cálculo de saldos y los filtros con pruebas de contrato, unitarias y de integración.
+
 ## Producto mínimo incremental
 
-- Consultar saldos e historial con filtros.
 - Implementar presupuestos y resúmenes mensuales.
 - Cubrir cada flujo con tests unitarios, de integración y E2E proporcionales a su riesgo.
 - Automatizar backups y comprobar la restauración antes de usar información financiera real.
