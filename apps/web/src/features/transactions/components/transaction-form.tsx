@@ -29,13 +29,13 @@ const transactionTypeLabels: Record<TransactionType, string> = {
   transfer: "Transferencia",
 };
 
-function accountOptionLabel(account: Account): string {
+export function accountOptionLabel(account: Account): string {
   return account.isActive
     ? `${account.name} (${account.currency})`
     : `${account.name} (${account.currency}) — inactiva`;
 }
 
-function categoryOptionLabel(category: Category): string {
+export function categoryOptionLabel(category: Category): string {
   return category.isActive ? category.name : `${category.name} — inactiva`;
 }
 

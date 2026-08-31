@@ -15,9 +15,14 @@ import {
   toDatetimeLocalInputValue,
   type TransactionFormValues,
 } from "../hooks/use-transaction-form";
+import {
+  toListTransactionsQuery,
+  useTransactionFilters,
+} from "../hooks/use-transaction-filters";
 import { useTransactionsQuery } from "../hooks/use-transactions-query";
 import { useUpdateTransactionMutation } from "../hooks/use-update-transaction-mutation";
 import { TransactionForm } from "./transaction-form";
+import { TransactionsFilters } from "./transactions-filters";
 import { TransactionsTable } from "./transactions-table";
 
 function toFormValues(transaction: Transaction): TransactionFormValues {
@@ -33,7 +38,10 @@ function toFormValues(transaction: Transaction): TransactionFormValues {
 }
 
 export function TransactionsDashboard() {
-  const transactionsQuery = useTransactionsQuery();
+  const filters = useTransactionFilters();
+  const transactionsQuery = useTransactionsQuery(
+    toListTransactionsQuery(filters.values),
+  );
   const accountsQuery = useAccountsQuery();
   const categoriesQuery = useCategoriesQuery();
   const { state, close, openEdit } = useTransactionModal();
@@ -73,6 +81,16 @@ export function TransactionsDashboard() {
 
   return (
     <div className="grid gap-[var(--ui-space-6)]">
+      {accountsQuery.isSuccess && categoriesQuery.isSuccess ? (
+        <TransactionsFilters
+          accounts={accountsQuery.data.accounts}
+          categories={categoriesQuery.data.categories}
+          values={filters.values}
+          onChange={filters.setField}
+          onClear={filters.clear}
+        />
+      ) : null}
+
       {transactionsQuery.isPending ? (
         <TransactionsTable state="loading" />
       ) : null}
