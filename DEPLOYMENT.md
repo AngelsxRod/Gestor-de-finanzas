@@ -71,7 +71,7 @@ La aplicación queda disponible en `http://127.0.0.1:3210`. No cambies el bindin
 
 ## Actualizaciones
 
-Haz primero un backup. Después actualiza el código y reconstruye:
+Corre primero `./scripts/backup.sh` (ver [Backup y restauración](#backup-y-restauración)). Después actualiza el código y reconstruye:
 
 ```bash
 git pull --ff-only
@@ -82,15 +82,37 @@ La tarea `migrate` es idempotente: Drizzle aplica únicamente migraciones pendie
 
 ## Backup y restauración
 
-Crear un backup lógico:
+`scripts/backup.sh` crea un backup lógico cifrado (`openssl enc -aes-256-cbc -pbkdf2`) del servicio `postgres` de `compose.prod.yaml` y elimina los backups más viejos que `RETENTION_DAYS` (14 por omisión). Necesita una frase de cifrado en `GESTOR_FINANZAS_BACKUP_PASSPHRASE`, que debe guardarse fuera del repositorio y del mismo disco que los backups: perderla hace irrecuperables todos los backups cifrados con ella.
 
 ```bash
-docker compose --env-file .env.production -f compose.prod.yaml exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom' > gestor-finanzas.backup
+export GESTOR_FINANZAS_BACKUP_PASSPHRASE="una frase larga, guardada aparte"
+./scripts/backup.sh
 ```
 
-Guarda el archivo cifrado y fuera del mismo disco que contiene el volumen. Verifica periódicamente la restauración en una base aislada.
+Por omisión escribe en `./backups/` (ignorado por Git; nunca versiones un backup). `COMPOSE_FILE`, `ENV_FILE`, `BACKUP_DIR` y `RETENTION_DAYS` son configurables como variables de entorno si necesitas otra ubicación. Copia los archivos generados fuera de esta máquina — el script solo resuelve la creación y retención locales, no la réplica fuera de sitio (ver [ADR-0005](docs/adr/0005-backups-cifrados-con-cron-del-host.md)).
 
-Restaurar reemplaza datos y requiere una ventana de mantenimiento. Detén web y API, confirma el destino y usa `pg_restore` desde el contenedor; no ejecutes una restauración sobre producción sin un backup reciente.
+### Programar backups automáticos
+
+El repositorio no instala ninguna tarea programada por ti: agrega una entrada de cron (o un timer de systemd) en el host, por ejemplo para correr todos los días a la 01:00:
+
+```cron
+0 1 * * * GESTOR_FINANZAS_BACKUP_PASSPHRASE="$(cat /ruta/segura/backup-passphrase)" /ruta/al/repo/scripts/backup.sh >> /var/log/gestor-finanzas-backup.log 2>&1
+```
+
+Guarda la frase de cifrado en un archivo con permisos restringidos (`chmod 600`), nunca directamente en el crontab.
+
+### Verificar una restauración
+
+`scripts/restore.sh` descifra un backup y lo restaura en una base de verificación aislada (`gestor_finanzas_restore_check` por omisión) dentro del mismo servicio `postgres` — nunca toca la base real:
+
+```bash
+export GESTOR_FINANZAS_BACKUP_PASSPHRASE="una frase larga, guardada aparte"
+./scripts/restore.sh backups/gestor-finanzas-20260831T071954Z.backup.enc
+```
+
+Imprime cuántas tablas encontró y el comando para eliminar la base de verificación cuando termines de inspeccionarla. Corre este simulacro de restauración periódicamente, no solo la primera vez, para confirmar que los backups siguen siendo restaurables.
+
+Restaurar sobre la base real reemplaza datos y requiere una ventana de mantenimiento: detén web y API, confirma el destino y usa `pg_restore` directamente contra `postgres` (no `scripts/restore.sh`, que solo restaura en la base de verificación); no ejecutes una restauración sobre producción sin un backup reciente y ya verificado.
 
 ## Operación
 
@@ -112,4 +134,4 @@ No uses `down --volumes` en producción: elimina permanentemente la base Postgre
 
 La guía oficial de Next.js recomienda un reverse proxy para self-hosting. Cuando la aplicación tenga autenticación, coloca Caddy, nginx o equivalente delante de `127.0.0.1:3210` para administrar HTTPS, límites de peticiones y tráfico malformado. No publiques los puertos internos de API o PostgreSQL.
 
-Siguen pendientes antes de almacenar datos financieros reales: autenticación, autorización, política de sesiones, estrategia de backups automatizados, restauración probada y actualización segura del host.
+Siguen pendientes antes de almacenar datos financieros reales: autenticación, autorización, política de sesiones y actualización segura del host. Backups cifrados y restauración probada ya están resueltos (ver [Backup y restauración](#backup-y-restauración)), aunque programar su ejecución periódica y copiarlos fuera de esta máquina siguen siendo tareas del operador.

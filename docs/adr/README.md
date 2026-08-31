@@ -30,3 +30,4 @@ Estados permitidos: `propuesto`, `aceptado`, `rechazado`, `obsoleto` o `reemplaz
 - [ADR-0002: Desactivación reversible en vez de borrado físico para cuentas y categorías](0002-soft-delete-simetrico-cuentas-categorias.md) — aceptado.
 - [ADR-0003: Desactivación reversible también para movimientos](0003-desactivacion-reversible-movimientos.md) — aceptado.
 - [ADR-0004: Presupuestos mensuales por categoría con gasto calculado](0004-presupuestos-mensuales-por-categoria.md) — aceptado.
+- [ADR-0005: Backups cifrados automatizados desde el host, no desde Compose](0005-backups-cifrados-con-cron-del-host.md) — aceptado.

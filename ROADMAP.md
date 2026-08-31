@@ -59,7 +59,7 @@ Este archivo comunica prioridades, no fechas ni compromisos de release. El estad
 ## Producto mínimo incremental
 
 - [x] Cubrir cada flujo con tests unitarios, de integración y E2E proporcionales a su riesgo: saldos, filtros de movimientos y presupuestos ya tienen los tres niveles, y CI levanta PostgreSQL para correr integración y E2E en cada push y pull request (antes solo corrían localmente).
-- Automatizar backups y comprobar la restauración antes de usar información financiera real.
+- [x] Automatizar backups y comprobar la restauración antes de usar información financiera real: `scripts/backup.sh` cifra y rota los backups, `scripts/restore.sh` verifica la restauración en una base aislada (ADR-0005). Programar la ejecución periódica (cron/systemd) y copiar los backups fuera de la máquina siguen siendo responsabilidad del operador — ver `DEPLOYMENT.md`.
 - Definir autenticación, autorización y sesiones antes de almacenar información real o ampliar el acceso más allá de la computadora local.
 
 ## Más adelante
