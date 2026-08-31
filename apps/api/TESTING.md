@@ -6,7 +6,7 @@
 - Ubicación: junto al código bajo `src/`.
 - Patrón: `**/*.spec.ts`.
 - Configuración: `vitest.config.ts`.
-- Los tests existentes cubren health, configuración, conexión y controller/service de cuentas, categorías y movimientos con dependencias aisladas.
+- Los tests existentes cubren health, configuración, conexión y controller/service de cuentas, categorías, movimientos y presupuestos con dependencias aisladas.
 
 ## E2E
 
@@ -31,4 +31,4 @@ pnpm --filter @gestor-finanzas/api test:debug
 
 El E2E necesita permisos para escuchar en red local.
 
-Los unitarios no requieren una base real. `test:integration` prueba `AccountsRepository`, `CategoriesRepository` y `TransactionsRepository`, y los E2E prueban health, cuentas, categorías y movimientos contra PostgreSQL. Ambos requieren `DATABASE_URL` apuntando a una base migrada cuyo nombre termine en `_test`; limpian `transactions`, `categories` y `accounts` (en ese orden, por las claves foráneas) y nunca deben ejecutarse contra desarrollo o producción. Como el spec de movimientos comparte las tablas `accounts` y `categories` con sus propios specs, `test:integration` corre los archivos en serie (`fileParallelism: false`) para evitar condiciones de carrera entre ellos.
+Los unitarios no requieren una base real. `test:integration` prueba `AccountsRepository`, `CategoriesRepository`, `TransactionsRepository` (incluidos el cálculo de saldos y los filtros de consulta) y `BudgetsRepository` (incluido el cálculo de gasto mensual), y los E2E prueban health, cuentas, categorías, movimientos (creación, edición, desactivación, saldos y filtros) y presupuestos (creación, edición, desactivación y el resumen mensual con gasto y restante) contra PostgreSQL. Ambos requieren `DATABASE_URL` apuntando a una base migrada cuyo nombre termine en `_test`; limpian `budgets`, `transactions`, `categories` y `accounts` (en ese orden, por las claves foráneas) y nunca deben ejecutarse contra desarrollo o producción. Como el spec de movimientos comparte las tablas `accounts` y `categories` con sus propios specs, y el de presupuestos comparte además `transactions`, `test:integration` corre los archivos en serie (`fileParallelism: false`) para evitar condiciones de carrera entre ellos.
