@@ -206,4 +206,100 @@ describe('TransactionsRepository integration', () => {
       repository.setActive('00000000-0000-0000-0000-000000000000', false),
     ).resolves.toBeUndefined();
   });
+
+  it('returns the opening balance for an account without transactions', async () => {
+    const account = await accountsRepository.create({
+      name: 'Sin movimientos',
+      type: 'cash',
+      currency: 'GTQ',
+      openingBalance: '50.0000',
+    });
+
+    const balances = await repository.findBalances();
+
+    expect(balances).toEqual([
+      {
+        accountId: account.id,
+        accountName: account.name,
+        currency: 'GTQ',
+        balance: '50.0000',
+      },
+    ]);
+  });
+
+  it('adds income, subtracts expense and moves transfers between accounts', async () => {
+    const origin = await accountsRepository.create({
+      name: 'Origen',
+      type: 'checking',
+      currency: 'GTQ',
+      openingBalance: '100.0000',
+    });
+    const destination = await accountsRepository.create({
+      name: 'Zeta destino',
+      type: 'savings',
+      currency: 'GTQ',
+      openingBalance: '0.0000',
+    });
+    const category = await categoriesRepository.create({
+      name: 'Salario',
+      type: 'income',
+    });
+    const expenseCategory = await categoriesRepository.create({
+      name: 'Comida',
+      type: 'expense',
+    });
+
+    await repository.create({
+      type: 'income',
+      amount: '300.0000',
+      currency: 'GTQ',
+      accountId: origin.id,
+      categoryId: category.id,
+      occurredAt: new Date('2026-08-01T10:00:00.000Z'),
+    });
+    await repository.create({
+      type: 'expense',
+      amount: '40.0000',
+      currency: 'GTQ',
+      accountId: origin.id,
+      categoryId: expenseCategory.id,
+      occurredAt: new Date('2026-08-02T10:00:00.000Z'),
+    });
+    await repository.create({
+      type: 'transfer',
+      amount: '60.0000',
+      currency: 'GTQ',
+      accountId: origin.id,
+      transferAccountId: destination.id,
+      categoryId: null,
+      occurredAt: new Date('2026-08-03T10:00:00.000Z'),
+    });
+    const inactive = await repository.create({
+      type: 'expense',
+      amount: '1000.0000',
+      currency: 'GTQ',
+      accountId: origin.id,
+      categoryId: expenseCategory.id,
+      occurredAt: new Date('2026-08-04T10:00:00.000Z'),
+    });
+    await repository.setActive(inactive.id, false);
+
+    const balances = await repository.findBalances();
+
+    expect(balances).toEqual([
+      {
+        accountId: origin.id,
+        accountName: origin.name,
+        currency: 'GTQ',
+        // 100 opening + 300 income - 40 expense - 60 transferred out
+        balance: '300.0000',
+      },
+      {
+        accountId: destination.id,
+        accountName: destination.name,
+        currency: 'GTQ',
+        balance: '60.0000',
+      },
+    ]);
+  });
 });

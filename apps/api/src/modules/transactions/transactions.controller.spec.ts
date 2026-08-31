@@ -19,9 +19,18 @@ describe('TransactionsController', () => {
       createdAt: '2026-08-29T12:00:00.000Z',
       updatedAt: '2026-08-29T12:00:00.000Z',
     };
+    const balances = [
+      {
+        accountId: transaction.accountId,
+        accountName: 'Cuenta principal',
+        currency: 'GTQ',
+        balance: '1250.5000',
+      },
+    ];
     const service = {
       create: vi.fn().mockResolvedValue({ transaction }),
       list: vi.fn().mockResolvedValue({ transactions: [transaction] }),
+      listBalances: vi.fn().mockResolvedValue({ balances }),
       update: vi.fn().mockResolvedValue({ transaction }),
       setActive: vi.fn().mockResolvedValue({ transaction }),
     };
@@ -44,6 +53,8 @@ describe('TransactionsController', () => {
       transactions: [transaction],
     });
     expect(service.create).toHaveBeenCalledWith(input);
+
+    await expect(controller.listBalances()).resolves.toEqual({ balances });
 
     await expect(controller.update(transaction.id, input)).resolves.toEqual({
       transaction,

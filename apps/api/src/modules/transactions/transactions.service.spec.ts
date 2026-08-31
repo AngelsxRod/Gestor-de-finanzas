@@ -50,6 +50,7 @@ const persistedTransaction: Transaction = {
 function createRepositories() {
   const transactionsRepository = {
     findAll: vi.fn(),
+    findBalances: vi.fn(),
     create: vi.fn(),
     updateById: vi.fn(),
     setActive: vi.fn(),
@@ -97,6 +98,24 @@ describe('TransactionsService', () => {
         },
       ],
     });
+  });
+
+  it('maps repository balances to the public contract', async () => {
+    const repositories = createRepositories();
+    const balances = [
+      {
+        accountId: account.id,
+        accountName: account.name,
+        currency: account.currency,
+        balance: '250.5000',
+      },
+    ];
+    repositories.transactionsRepository.findBalances.mockResolvedValue(
+      balances,
+    );
+    const service = createService(repositories);
+
+    await expect(service.listBalances()).resolves.toEqual({ balances });
   });
 
   it('creates an income transaction, deriving the currency from the account', async () => {
