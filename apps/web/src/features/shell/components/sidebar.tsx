@@ -1,7 +1,7 @@
 "use client";
 
 import { Text } from "@gestor-finanzas/ui";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { NAV_ITEMS } from "../config/nav-items";
 import { useShell } from "../context/shell-context";
 import { NavLink } from "./nav-link";
@@ -11,7 +11,11 @@ const comingSoonItems = NAV_ITEMS.filter(
   (item) => item.status === "coming-soon",
 );
 
-export function Sidebar() {
+export type SidebarProps = {
+  footer?: ReactNode;
+};
+
+export function Sidebar({ footer }: SidebarProps = {}) {
   const { isMobileNavOpen, closeMobileNav } = useShell();
   const navRef = useRef<HTMLElement>(null);
   const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
@@ -96,6 +100,12 @@ export function Sidebar() {
             </ul>
           </div>
         </div>
+
+        {footer ? (
+          <div className="border-t border-[var(--ui-color-border)]/60 p-[var(--ui-space-4)]">
+            {footer}
+          </div>
+        ) : null}
       </nav>
     </>
   );
