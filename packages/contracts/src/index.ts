@@ -3,10 +3,12 @@ export {
   authErrorResponseSchema,
   loginRequestSchema,
   loginResponseSchema,
+  logoutResponseSchema,
   sessionResponseSchema,
   type AuthErrorResponse,
   type LoginRequest,
   type LoginResponse,
+  type LogoutResponse,
   type SessionResponse,
 } from './auth.js';
 export {

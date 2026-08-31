@@ -13,6 +13,10 @@ export const sessionResponseSchema = z.strictObject({
 
 export const loginResponseSchema = sessionResponseSchema;
 
+export const logoutResponseSchema = z.strictObject({
+  success: z.literal(true),
+});
+
 export const authErrorCodeSchema = z.enum([
   'VALIDATION_ERROR',
   'AUTH_INVALID_CREDENTIALS',
@@ -29,4 +33,5 @@ export const authErrorResponseSchema = z.strictObject({
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 export type SessionResponse = z.infer<typeof sessionResponseSchema>;
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
+export type LogoutResponse = z.infer<typeof logoutResponseSchema>;
 export type AuthErrorResponse = z.infer<typeof authErrorResponseSchema>;

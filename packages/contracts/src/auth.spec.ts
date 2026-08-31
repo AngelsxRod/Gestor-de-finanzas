@@ -3,6 +3,7 @@ import {
   authErrorResponseSchema,
   loginRequestSchema,
   loginResponseSchema,
+  logoutResponseSchema,
   sessionResponseSchema,
 } from './auth.js';
 
@@ -26,6 +27,15 @@ describe('auth contracts', () => {
 
     expect(sessionResponseSchema.parse(session)).toEqual(session);
     expect(loginResponseSchema.parse(session)).toEqual(session);
+  });
+
+  it('accepts a logout response', () => {
+    expect(logoutResponseSchema.parse({ success: true })).toEqual({
+      success: true,
+    });
+    expect(logoutResponseSchema.safeParse({ success: false }).success).toBe(
+      false,
+    );
   });
 
   it('accepts the public error codes for authentication failures', () => {
