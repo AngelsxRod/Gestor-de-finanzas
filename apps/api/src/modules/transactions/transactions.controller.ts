@@ -13,6 +13,7 @@ import {
   updateTransactionRequestSchema,
   type CreateTransactionRequest,
   type CreateTransactionResponse,
+  type ListAccountBalancesResponse,
   type ListTransactionsResponse,
   type SetTransactionActiveRequest,
   type SetTransactionActiveResponse,
@@ -24,6 +25,11 @@ import { TransactionsService } from './transactions.service.js';
 @Controller('transactions')
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
+
+  @Get('balances')
+  listBalances(): Promise<ListAccountBalancesResponse> {
+    return this.transactionsService.listBalances();
+  }
 
   @Get()
   list(): Promise<ListTransactionsResponse> {

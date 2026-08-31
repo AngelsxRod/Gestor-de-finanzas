@@ -6,6 +6,7 @@ import {
 import type {
   CreateTransactionRequest,
   CreateTransactionResponse,
+  ListAccountBalancesResponse,
   ListTransactionsResponse,
   SetTransactionActiveResponse,
   Transaction as TransactionResponse,
@@ -52,6 +53,12 @@ export class TransactionsService {
     const transactions = await this.transactionsRepository.findAll();
 
     return { transactions: transactions.map(toResponse) };
+  }
+
+  async listBalances(): Promise<ListAccountBalancesResponse> {
+    const balances = await this.transactionsRepository.findBalances();
+
+    return { balances };
   }
 
   async create(
