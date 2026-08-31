@@ -44,7 +44,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     href: "/presupuestos",
     label: "Presupuestos",
     description: "Límites y seguimiento por categoría",
-    status: "coming-soon",
+    status: "available",
   },
   {
     href: "/configuracion",
