@@ -10,6 +10,7 @@ import request from 'supertest';
 import { configureApp } from './../src/app.config.js';
 import { AppModule } from './../src/app.module.js';
 import { DatabaseService } from './../src/modules/database/database.service.js';
+import { TEST_ADMIN_PASSWORD, TEST_ADMIN_USERNAME } from './../vitest.config.e2e.js';
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -20,6 +21,7 @@ if (!databaseUrl || !new URL(databaseUrl).pathname.endsWith('_test')) {
 describe('application (e2e)', () => {
   let app: INestApplication;
   let database: DatabaseService;
+  let agent: ReturnType<typeof request.agent>;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -34,24 +36,32 @@ describe('application (e2e)', () => {
     await database.db.delete(transactions);
     await database.db.delete(categories);
     await database.db.delete(accounts);
+
+    // Every other test in this file expects an authenticated session; the
+    // dedicated auth tests below exercise the unauthenticated paths.
+    agent = request.agent(app.getHttpServer());
+    await agent
+      .post('/api/v1/auth/login')
+      .send({ username: TEST_ADMIN_USERNAME, password: TEST_ADMIN_PASSWORD })
+      .expect(200);
   });
 
   it('/api/v1/health (GET)', () => {
-    return request(app.getHttpServer())
+    return agent
       .get('/api/v1/health')
       .expect(200)
       .expect({ status: 'ok', service: 'gestor-finanzas-api' });
   });
 
   it('/api/v1/accounts (GET) returns an empty account collection', () => {
-    return request(app.getHttpServer())
+    return agent
       .get('/api/v1/accounts')
       .expect(200)
       .expect({ accounts: [] });
   });
 
   it('/api/v1/accounts (POST) validates, creates and exposes the account', async () => {
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/accounts')
       .send({
         name: '   ',
@@ -68,7 +78,7 @@ describe('application (e2e)', () => {
         expect(body.details).toHaveLength(4);
       });
 
-    const createResponse = await request(app.getHttpServer())
+    const createResponse = await agent
       .post('/api/v1/accounts')
       .send({
         name: '  Cuenta principal  ',
@@ -90,7 +100,7 @@ describe('application (e2e)', () => {
     expect(createResponse.body.account.id).toEqual(expect.any(String));
     expect(createResponse.body.account.createdAt).toEqual(expect.any(String));
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/accounts')
       .send({
         name: 'cuenta principal',
@@ -104,7 +114,7 @@ describe('application (e2e)', () => {
         message: 'Ya existe una cuenta con ese nombre.',
       });
 
-    const listResponse = await request(app.getHttpServer())
+    const listResponse = await agent
       .get('/api/v1/accounts')
       .expect(200);
 
@@ -114,7 +124,7 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/accounts/:id (PATCH) validates, updates, reports conflicts and not-found', async () => {
-    const created = await request(app.getHttpServer())
+    const created = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Cuenta original',
@@ -125,7 +135,7 @@ describe('application (e2e)', () => {
       .expect(201);
     const accountId = created.body.account.id;
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Otra cuenta',
@@ -135,7 +145,7 @@ describe('application (e2e)', () => {
       })
       .expect(201);
 
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/accounts/${accountId}`)
       .send({ name: '', type: 'wallet', currency: 'GT', openingBalance: 'x' })
       .expect(400)
@@ -143,7 +153,7 @@ describe('application (e2e)', () => {
         expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
       });
 
-    const updateResponse = await request(app.getHttpServer())
+    const updateResponse = await agent
       .patch(`/api/v1/accounts/${accountId}`)
       .send({
         name: 'Cuenta renombrada',
@@ -162,7 +172,7 @@ describe('application (e2e)', () => {
       },
     });
 
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/accounts/${accountId}`)
       .send({
         name: 'Otra cuenta',
@@ -176,7 +186,7 @@ describe('application (e2e)', () => {
         message: 'Ya existe una cuenta con ese nombre.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .patch('/api/v1/accounts/00000000-0000-0000-0000-000000000000')
       .send({
         name: 'Cuenta',
@@ -192,7 +202,7 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/accounts/:id/active (PATCH) toggles the active flag and reports not-found', async () => {
-    const created = await request(app.getHttpServer())
+    const created = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Cuenta a desactivar',
@@ -203,7 +213,7 @@ describe('application (e2e)', () => {
       .expect(201);
     const accountId = created.body.account.id;
 
-    const deactivateResponse = await request(app.getHttpServer())
+    const deactivateResponse = await agent
       .patch(`/api/v1/accounts/${accountId}/active`)
       .send({ isActive: false })
       .expect(200);
@@ -211,7 +221,7 @@ describe('application (e2e)', () => {
       account: { id: accountId, isActive: false },
     });
 
-    const reactivateResponse = await request(app.getHttpServer())
+    const reactivateResponse = await agent
       .patch(`/api/v1/accounts/${accountId}/active`)
       .send({ isActive: true })
       .expect(200);
@@ -219,7 +229,7 @@ describe('application (e2e)', () => {
       account: { id: accountId, isActive: true },
     });
 
-    await request(app.getHttpServer())
+    await agent
       .patch('/api/v1/accounts/00000000-0000-0000-0000-000000000000/active')
       .send({ isActive: false })
       .expect(404)
@@ -230,14 +240,14 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/categories (GET) returns an empty category collection', () => {
-    return request(app.getHttpServer())
+    return agent
       .get('/api/v1/categories')
       .expect(200)
       .expect({ categories: [] });
   });
 
   it('/api/v1/categories validates, creates, scopes duplicates and orders the list', async () => {
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/categories')
       .send({ name: '   ', type: 'transfer' })
       .expect(400)
@@ -249,7 +259,7 @@ describe('application (e2e)', () => {
         expect(body.details).toHaveLength(2);
       });
 
-    const expense = await request(app.getHttpServer())
+    const expense = await agent
       .post('/api/v1/categories')
       .send({ name: '  Vivienda  ', type: 'expense' })
       .expect(201);
@@ -257,7 +267,7 @@ describe('application (e2e)', () => {
       category: { name: 'Vivienda', type: 'expense' },
     });
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/categories')
       .send({ name: 'vIVIENDA', type: 'expense' })
       .expect(409)
@@ -266,16 +276,16 @@ describe('application (e2e)', () => {
         message: 'Ya existe una categoría con ese nombre y tipo.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/categories')
       .send({ name: 'vivienda', type: 'income' })
       .expect(201);
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/categories')
       .send({ name: 'Alimentación', type: 'expense' })
       .expect(201);
 
-    const list = await request(app.getHttpServer())
+    const list = await agent
       .get('/api/v1/categories')
       .expect(200);
     expect(
@@ -287,18 +297,18 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/categories/:id (PATCH) validates, updates, reports conflicts and not-found', async () => {
-    const created = await request(app.getHttpServer())
+    const created = await agent
       .post('/api/v1/categories')
       .send({ name: 'Transporte', type: 'expense' })
       .expect(201);
     const categoryId = created.body.category.id;
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/categories')
       .send({ name: 'Salario', type: 'income' })
       .expect(201);
 
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/categories/${categoryId}`)
       .send({ name: '   ', type: 'transfer' })
       .expect(400)
@@ -306,7 +316,7 @@ describe('application (e2e)', () => {
         expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
       });
 
-    const updateResponse = await request(app.getHttpServer())
+    const updateResponse = await agent
       .patch(`/api/v1/categories/${categoryId}`)
       .send({ name: 'Transporte público', type: 'expense' })
       .expect(200);
@@ -314,7 +324,7 @@ describe('application (e2e)', () => {
       category: { id: categoryId, name: 'Transporte público', type: 'expense' },
     });
 
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/categories/${categoryId}`)
       .send({ name: 'Salario', type: 'income' })
       .expect(409)
@@ -323,7 +333,7 @@ describe('application (e2e)', () => {
         message: 'Ya existe una categoría con ese nombre y tipo.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .patch('/api/v1/categories/00000000-0000-0000-0000-000000000000')
       .send({ name: 'Comida', type: 'expense' })
       .expect(404)
@@ -334,13 +344,13 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/categories/:id/active (PATCH) toggles the active flag and reports not-found', async () => {
-    const created = await request(app.getHttpServer())
+    const created = await agent
       .post('/api/v1/categories')
       .send({ name: 'Ocio', type: 'expense' })
       .expect(201);
     const categoryId = created.body.category.id;
 
-    const deactivateResponse = await request(app.getHttpServer())
+    const deactivateResponse = await agent
       .patch(`/api/v1/categories/${categoryId}/active`)
       .send({ isActive: false })
       .expect(200);
@@ -348,7 +358,7 @@ describe('application (e2e)', () => {
       category: { id: categoryId, isActive: false },
     });
 
-    const reactivateResponse = await request(app.getHttpServer())
+    const reactivateResponse = await agent
       .patch(`/api/v1/categories/${categoryId}/active`)
       .send({ isActive: true })
       .expect(200);
@@ -356,7 +366,7 @@ describe('application (e2e)', () => {
       category: { id: categoryId, isActive: true },
     });
 
-    await request(app.getHttpServer())
+    await agent
       .patch('/api/v1/categories/00000000-0000-0000-0000-000000000000/active')
       .send({ isActive: false })
       .expect(404)
@@ -367,14 +377,14 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/transactions (GET) returns an empty transaction collection', () => {
-    return request(app.getHttpServer())
+    return agent
       .get('/api/v1/transactions')
       .expect(200)
       .expect({ transactions: [] });
   });
 
   it('/api/v1/transactions (POST) validates, creates and lists income, expense and transfer movements', async () => {
-    const checking = await request(app.getHttpServer())
+    const checking = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Cuenta corriente',
@@ -383,7 +393,7 @@ describe('application (e2e)', () => {
         openingBalance: '0.0000',
       })
       .expect(201);
-    const savings = await request(app.getHttpServer())
+    const savings = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Cuenta de ahorro',
@@ -392,16 +402,16 @@ describe('application (e2e)', () => {
         openingBalance: '0.0000',
       })
       .expect(201);
-    const salary = await request(app.getHttpServer())
+    const salary = await agent
       .post('/api/v1/categories')
       .send({ name: 'Salario', type: 'income' })
       .expect(201);
-    const groceries = await request(app.getHttpServer())
+    const groceries = await agent
       .post('/api/v1/categories')
       .send({ name: 'Alimentación', type: 'expense' })
       .expect(201);
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/transactions')
       .send({
         type: 'income',
@@ -415,7 +425,7 @@ describe('application (e2e)', () => {
         expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
       });
 
-    const income = await request(app.getHttpServer())
+    const income = await agent
       .post('/api/v1/transactions')
       .send({
         type: 'income',
@@ -438,7 +448,7 @@ describe('application (e2e)', () => {
       },
     });
 
-    const expense = await request(app.getHttpServer())
+    const expense = await agent
       .post('/api/v1/transactions')
       .send({
         type: 'expense',
@@ -452,7 +462,7 @@ describe('application (e2e)', () => {
       transaction: { type: 'expense', amount: '200.0000' },
     });
 
-    const transfer = await request(app.getHttpServer())
+    const transfer = await agent
       .post('/api/v1/transactions')
       .send({
         type: 'transfer',
@@ -472,7 +482,7 @@ describe('application (e2e)', () => {
       },
     });
 
-    const list = await request(app.getHttpServer())
+    const list = await agent
       .get('/api/v1/transactions')
       .expect(200);
     expect(
@@ -483,7 +493,7 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/transactions (POST) enforces account, category and currency business rules', async () => {
-    const checking = await request(app.getHttpServer())
+    const checking = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Cuenta corriente',
@@ -492,7 +502,7 @@ describe('application (e2e)', () => {
         openingBalance: '0.0000',
       })
       .expect(201);
-    const usdAccount = await request(app.getHttpServer())
+    const usdAccount = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Cuenta en dólares',
@@ -501,7 +511,7 @@ describe('application (e2e)', () => {
         openingBalance: '0.0000',
       })
       .expect(201);
-    const inactiveAccount = await request(app.getHttpServer())
+    const inactiveAccount = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Cuenta cerrada',
@@ -510,24 +520,24 @@ describe('application (e2e)', () => {
         openingBalance: '0.0000',
       })
       .expect(201);
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/accounts/${inactiveAccount.body.account.id}/active`)
       .send({ isActive: false })
       .expect(200);
-    const expenseCategory = await request(app.getHttpServer())
+    const expenseCategory = await agent
       .post('/api/v1/categories')
       .send({ name: 'Transporte', type: 'expense' })
       .expect(201);
-    const inactiveCategory = await request(app.getHttpServer())
+    const inactiveCategory = await agent
       .post('/api/v1/categories')
       .send({ name: 'Ocio', type: 'expense' })
       .expect(201);
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/categories/${inactiveCategory.body.category.id}/active`)
       .send({ isActive: false })
       .expect(200);
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/transactions')
       .send({
         type: 'income',
@@ -542,7 +552,7 @@ describe('application (e2e)', () => {
         message: 'No se encontró la cuenta solicitada.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/transactions')
       .send({
         type: 'expense',
@@ -557,7 +567,7 @@ describe('application (e2e)', () => {
         message: 'La cuenta está inactiva.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/transactions')
       .send({
         type: 'expense',
@@ -572,7 +582,7 @@ describe('application (e2e)', () => {
         message: 'La categoría está inactiva.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/transactions')
       .send({
         type: 'income',
@@ -587,7 +597,7 @@ describe('application (e2e)', () => {
         message: 'El tipo de categoría no coincide con el del movimiento.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/transactions')
       .send({
         type: 'transfer',
@@ -603,7 +613,7 @@ describe('application (e2e)', () => {
           'La cuenta destino debe ser diferente de la cuenta de origen.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/transactions')
       .send({
         type: 'transfer',
@@ -620,7 +630,7 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/transactions/:id (PATCH) validates, updates, re-validates business rules and reports not-found', async () => {
-    const checking = await request(app.getHttpServer())
+    const checking = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Cuenta corriente',
@@ -629,15 +639,15 @@ describe('application (e2e)', () => {
         openingBalance: '0.0000',
       })
       .expect(201);
-    const salary = await request(app.getHttpServer())
+    const salary = await agent
       .post('/api/v1/categories')
       .send({ name: 'Salario', type: 'income' })
       .expect(201);
-    const groceries = await request(app.getHttpServer())
+    const groceries = await agent
       .post('/api/v1/categories')
       .send({ name: 'Alimentación', type: 'expense' })
       .expect(201);
-    const created = await request(app.getHttpServer())
+    const created = await agent
       .post('/api/v1/transactions')
       .send({
         type: 'income',
@@ -649,7 +659,7 @@ describe('application (e2e)', () => {
       .expect(201);
     const transactionId = created.body.transaction.id;
 
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/transactions/${transactionId}`)
       .send({ type: 'income', amount: '0', occurredAt: '2026-08-01T09:00' })
       .expect(400)
@@ -657,7 +667,7 @@ describe('application (e2e)', () => {
         expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
       });
 
-    const updateResponse = await request(app.getHttpServer())
+    const updateResponse = await agent
       .patch(`/api/v1/transactions/${transactionId}`)
       .send({
         type: 'expense',
@@ -678,7 +688,7 @@ describe('application (e2e)', () => {
       },
     });
 
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/transactions/${transactionId}`)
       .send({
         type: 'income',
@@ -693,7 +703,7 @@ describe('application (e2e)', () => {
         message: 'El tipo de categoría no coincide con el del movimiento.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .patch('/api/v1/transactions/00000000-0000-0000-0000-000000000000')
       .send({
         type: 'expense',
@@ -710,7 +720,7 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/transactions/:id/active (PATCH) toggles the active flag and reports not-found', async () => {
-    const checking = await request(app.getHttpServer())
+    const checking = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Cuenta corriente',
@@ -719,11 +729,11 @@ describe('application (e2e)', () => {
         openingBalance: '0.0000',
       })
       .expect(201);
-    const salary = await request(app.getHttpServer())
+    const salary = await agent
       .post('/api/v1/categories')
       .send({ name: 'Salario', type: 'income' })
       .expect(201);
-    const created = await request(app.getHttpServer())
+    const created = await agent
       .post('/api/v1/transactions')
       .send({
         type: 'income',
@@ -735,7 +745,7 @@ describe('application (e2e)', () => {
       .expect(201);
     const transactionId = created.body.transaction.id;
 
-    const deactivateResponse = await request(app.getHttpServer())
+    const deactivateResponse = await agent
       .patch(`/api/v1/transactions/${transactionId}/active`)
       .send({ isActive: false })
       .expect(200);
@@ -743,7 +753,7 @@ describe('application (e2e)', () => {
       transaction: { id: transactionId, isActive: false },
     });
 
-    const reactivateResponse = await request(app.getHttpServer())
+    const reactivateResponse = await agent
       .patch(`/api/v1/transactions/${transactionId}/active`)
       .send({ isActive: true })
       .expect(200);
@@ -751,7 +761,7 @@ describe('application (e2e)', () => {
       transaction: { id: transactionId, isActive: true },
     });
 
-    await request(app.getHttpServer())
+    await agent
       .patch('/api/v1/transactions/00000000-0000-0000-0000-000000000000/active')
       .send({ isActive: false })
       .expect(404)
@@ -762,7 +772,7 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/transactions/balances (GET) computes each account balance from its active movements', async () => {
-    const origin = await request(app.getHttpServer())
+    const origin = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Origen',
@@ -771,7 +781,7 @@ describe('application (e2e)', () => {
         openingBalance: '100.0000',
       })
       .expect(201);
-    const destination = await request(app.getHttpServer())
+    const destination = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Destino',
@@ -780,16 +790,16 @@ describe('application (e2e)', () => {
         openingBalance: '0.0000',
       })
       .expect(201);
-    const salary = await request(app.getHttpServer())
+    const salary = await agent
       .post('/api/v1/categories')
       .send({ name: 'Salario', type: 'income' })
       .expect(201);
-    const groceries = await request(app.getHttpServer())
+    const groceries = await agent
       .post('/api/v1/categories')
       .send({ name: 'Alimentación', type: 'expense' })
       .expect(201);
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/transactions')
       .send({
         type: 'income',
@@ -799,7 +809,7 @@ describe('application (e2e)', () => {
         occurredAt: '2026-08-01T09:00',
       })
       .expect(201);
-    const inactiveExpense = await request(app.getHttpServer())
+    const inactiveExpense = await agent
       .post('/api/v1/transactions')
       .send({
         type: 'expense',
@@ -809,11 +819,11 @@ describe('application (e2e)', () => {
         occurredAt: '2026-08-02T09:00',
       })
       .expect(201);
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/transactions/${inactiveExpense.body.transaction.id}/active`)
       .send({ isActive: false })
       .expect(200);
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/transactions')
       .send({
         type: 'expense',
@@ -823,7 +833,7 @@ describe('application (e2e)', () => {
         occurredAt: '2026-08-03T09:00',
       })
       .expect(201);
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/transactions')
       .send({
         type: 'transfer',
@@ -834,7 +844,7 @@ describe('application (e2e)', () => {
       })
       .expect(201);
 
-    const balances = await request(app.getHttpServer())
+    const balances = await agent
       .get('/api/v1/transactions/balances')
       .expect(200);
 
@@ -858,7 +868,7 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/transactions (GET) filters by account, category, type, date range and active state', async () => {
-    const origin = await request(app.getHttpServer())
+    const origin = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Origen',
@@ -867,7 +877,7 @@ describe('application (e2e)', () => {
         openingBalance: '0.0000',
       })
       .expect(201);
-    const destination = await request(app.getHttpServer())
+    const destination = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Destino',
@@ -876,16 +886,16 @@ describe('application (e2e)', () => {
         openingBalance: '0.0000',
       })
       .expect(201);
-    const salary = await request(app.getHttpServer())
+    const salary = await agent
       .post('/api/v1/categories')
       .send({ name: 'Salario', type: 'income' })
       .expect(201);
-    const groceries = await request(app.getHttpServer())
+    const groceries = await agent
       .post('/api/v1/categories')
       .send({ name: 'Alimentación', type: 'expense' })
       .expect(201);
 
-    const income = await request(app.getHttpServer())
+    const income = await agent
       .post('/api/v1/transactions')
       .send({
         type: 'income',
@@ -895,7 +905,7 @@ describe('application (e2e)', () => {
         occurredAt: '2026-08-05T10:00',
       })
       .expect(201);
-    const expense = await request(app.getHttpServer())
+    const expense = await agent
       .post('/api/v1/transactions')
       .send({
         type: 'expense',
@@ -905,7 +915,7 @@ describe('application (e2e)', () => {
         occurredAt: '2026-08-10T10:00',
       })
       .expect(201);
-    const transfer = await request(app.getHttpServer())
+    const transfer = await agent
       .post('/api/v1/transactions')
       .send({
         type: 'transfer',
@@ -915,40 +925,40 @@ describe('application (e2e)', () => {
         occurredAt: '2026-08-15T10:00',
       })
       .expect(201);
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/transactions/${expense.body.transaction.id}/active`)
       .send({ isActive: false })
       .expect(200);
 
-    const byAccount = await request(app.getHttpServer())
+    const byAccount = await agent
       .get(`/api/v1/transactions?accountId=${destination.body.account.id}`)
       .expect(200);
     expect(byAccount.body.transactions.map((t: { id: string }) => t.id)).toEqual(
       [transfer.body.transaction.id],
     );
 
-    const byType = await request(app.getHttpServer())
+    const byType = await agent
       .get('/api/v1/transactions?type=income')
       .expect(200);
     expect(byType.body.transactions.map((t: { id: string }) => t.id)).toEqual([
       income.body.transaction.id,
     ]);
 
-    const byDateRange = await request(app.getHttpServer())
+    const byDateRange = await agent
       .get('/api/v1/transactions?occurredFrom=2026-08-10&occurredTo=2026-08-15')
       .expect(200);
     expect(
       byDateRange.body.transactions.map((t: { id: string }) => t.id),
     ).toEqual([transfer.body.transaction.id, expense.body.transaction.id]);
 
-    const byActive = await request(app.getHttpServer())
+    const byActive = await agent
       .get('/api/v1/transactions?isActive=false')
       .expect(200);
     expect(byActive.body.transactions.map((t: { id: string }) => t.id)).toEqual(
       [expense.body.transaction.id],
     );
 
-    await request(app.getHttpServer())
+    await agent
       .get('/api/v1/transactions?occurredFrom=2026-08-15&occurredTo=2026-08-01')
       .expect(400)
       .expect(({ body }) => {
@@ -957,24 +967,24 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/budgets (POST) validates, creates and enforces category rules', async () => {
-    const expenseCategory = await request(app.getHttpServer())
+    const expenseCategory = await agent
       .post('/api/v1/categories')
       .send({ name: 'Alimentación', type: 'expense' })
       .expect(201);
-    const incomeCategory = await request(app.getHttpServer())
+    const incomeCategory = await agent
       .post('/api/v1/categories')
       .send({ name: 'Salario', type: 'income' })
       .expect(201);
-    const inactiveCategory = await request(app.getHttpServer())
+    const inactiveCategory = await agent
       .post('/api/v1/categories')
       .send({ name: 'Ocio', type: 'expense' })
       .expect(201);
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/categories/${inactiveCategory.body.category.id}/active`)
       .send({ isActive: false })
       .expect(200);
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/budgets')
       .send({
         categoryId: expenseCategory.body.category.id,
@@ -987,7 +997,7 @@ describe('application (e2e)', () => {
         expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
       });
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/budgets')
       .send({
         categoryId: '00000000-0000-0000-0000-000000000000',
@@ -1001,7 +1011,7 @@ describe('application (e2e)', () => {
         message: 'No se encontró la categoría solicitada.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/budgets')
       .send({
         categoryId: inactiveCategory.body.category.id,
@@ -1015,7 +1025,7 @@ describe('application (e2e)', () => {
         message: 'La categoría está inactiva.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/budgets')
       .send({
         categoryId: incomeCategory.body.category.id,
@@ -1029,7 +1039,7 @@ describe('application (e2e)', () => {
         message: 'Solo las categorías de gasto pueden tener presupuesto.',
       });
 
-    const created = await request(app.getHttpServer())
+    const created = await agent
       .post('/api/v1/budgets')
       .send({
         categoryId: expenseCategory.body.category.id,
@@ -1048,7 +1058,7 @@ describe('application (e2e)', () => {
       },
     });
 
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/budgets')
       .send({
         categoryId: expenseCategory.body.category.id,
@@ -1064,9 +1074,9 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/budgets (GET) requires the month query param and returns spent and remaining', async () => {
-    await request(app.getHttpServer()).get('/api/v1/budgets').expect(400);
+    await agent.get('/api/v1/budgets').expect(400);
 
-    const account = await request(app.getHttpServer())
+    const account = await agent
       .post('/api/v1/accounts')
       .send({
         name: 'Cuenta principal',
@@ -1075,11 +1085,11 @@ describe('application (e2e)', () => {
         openingBalance: '0.0000',
       })
       .expect(201);
-    const groceries = await request(app.getHttpServer())
+    const groceries = await agent
       .post('/api/v1/categories')
       .send({ name: 'Alimentación', type: 'expense' })
       .expect(201);
-    const budget = await request(app.getHttpServer())
+    const budget = await agent
       .post('/api/v1/budgets')
       .send({
         categoryId: groceries.body.category.id,
@@ -1088,7 +1098,7 @@ describe('application (e2e)', () => {
         limitAmount: '1000',
       })
       .expect(201);
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/transactions')
       .send({
         type: 'expense',
@@ -1099,7 +1109,7 @@ describe('application (e2e)', () => {
       })
       .expect(201);
 
-    const list = await request(app.getHttpServer())
+    const list = await agent
       .get('/api/v1/budgets?month=2026-08')
       .expect(200);
     expect(list.body).toEqual({
@@ -1112,18 +1122,18 @@ describe('application (e2e)', () => {
       ],
     });
 
-    const emptyMonth = await request(app.getHttpServer())
+    const emptyMonth = await agent
       .get('/api/v1/budgets?month=2026-09')
       .expect(200);
     expect(emptyMonth.body).toEqual({ budgets: [] });
   });
 
   it('/api/v1/budgets/:id (PATCH) validates, updates, reports conflicts and not-found', async () => {
-    const groceries = await request(app.getHttpServer())
+    const groceries = await agent
       .post('/api/v1/categories')
       .send({ name: 'Alimentación', type: 'expense' })
       .expect(201);
-    const created = await request(app.getHttpServer())
+    const created = await agent
       .post('/api/v1/budgets')
       .send({
         categoryId: groceries.body.category.id,
@@ -1132,7 +1142,7 @@ describe('application (e2e)', () => {
         limitAmount: '1000',
       })
       .expect(201);
-    await request(app.getHttpServer())
+    await agent
       .post('/api/v1/budgets')
       .send({
         categoryId: groceries.body.category.id,
@@ -1143,7 +1153,7 @@ describe('application (e2e)', () => {
       .expect(201);
     const budgetId = created.body.budget.id;
 
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/budgets/${budgetId}`)
       .send({
         categoryId: groceries.body.category.id,
@@ -1156,7 +1166,7 @@ describe('application (e2e)', () => {
         expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
       });
 
-    const updateResponse = await request(app.getHttpServer())
+    const updateResponse = await agent
       .patch(`/api/v1/budgets/${budgetId}`)
       .send({
         categoryId: groceries.body.category.id,
@@ -1169,7 +1179,7 @@ describe('application (e2e)', () => {
       budget: { id: budgetId, limitAmount: '1500.0000' },
     });
 
-    await request(app.getHttpServer())
+    await agent
       .patch(`/api/v1/budgets/${budgetId}`)
       .send({
         categoryId: groceries.body.category.id,
@@ -1183,7 +1193,7 @@ describe('application (e2e)', () => {
         message: 'Ya existe un presupuesto para esa categoría en ese mes.',
       });
 
-    await request(app.getHttpServer())
+    await agent
       .patch('/api/v1/budgets/00000000-0000-0000-0000-000000000000')
       .send({
         categoryId: groceries.body.category.id,
@@ -1199,11 +1209,11 @@ describe('application (e2e)', () => {
   });
 
   it('/api/v1/budgets/:id/active (PATCH) toggles the active flag and reports not-found', async () => {
-    const groceries = await request(app.getHttpServer())
+    const groceries = await agent
       .post('/api/v1/categories')
       .send({ name: 'Alimentación', type: 'expense' })
       .expect(201);
-    const created = await request(app.getHttpServer())
+    const created = await agent
       .post('/api/v1/budgets')
       .send({
         categoryId: groceries.body.category.id,
@@ -1214,7 +1224,7 @@ describe('application (e2e)', () => {
       .expect(201);
     const budgetId = created.body.budget.id;
 
-    const deactivateResponse = await request(app.getHttpServer())
+    const deactivateResponse = await agent
       .patch(`/api/v1/budgets/${budgetId}/active`)
       .send({ isActive: false })
       .expect(200);
@@ -1222,7 +1232,7 @@ describe('application (e2e)', () => {
       budget: { id: budgetId, isActive: false },
     });
 
-    const reactivateResponse = await request(app.getHttpServer())
+    const reactivateResponse = await agent
       .patch(`/api/v1/budgets/${budgetId}/active`)
       .send({ isActive: true })
       .expect(200);
@@ -1230,7 +1240,7 @@ describe('application (e2e)', () => {
       budget: { id: budgetId, isActive: true },
     });
 
-    await request(app.getHttpServer())
+    await agent
       .patch('/api/v1/budgets/00000000-0000-0000-0000-000000000000/active')
       .send({ isActive: false })
       .expect(404)
@@ -1238,6 +1248,82 @@ describe('application (e2e)', () => {
         code: 'BUDGET_NOT_FOUND',
         message: 'No se encontró el presupuesto solicitado.',
       });
+  });
+
+  it('rejects a protected request without a session', () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/accounts')
+      .expect(401)
+      .expect({
+        code: 'UNAUTHENTICATED',
+        message: 'Inicia sesión para continuar.',
+      });
+  });
+
+  it('/api/v1/auth/login (POST) rejects invalid credentials without revealing which field failed', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ username: 'someone-else', password: TEST_ADMIN_PASSWORD })
+      .expect(401)
+      .expect({
+        code: 'AUTH_INVALID_CREDENTIALS',
+        message: 'Usuario o contraseña incorrectos.',
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ username: TEST_ADMIN_USERNAME, password: 'wrong-password' })
+      .expect(401)
+      .expect({
+        code: 'AUTH_INVALID_CREDENTIALS',
+        message: 'Usuario o contraseña incorrectos.',
+      });
+  });
+
+  it('/api/v1/auth/session (GET) reflects the authenticated user', () => {
+    return agent
+      .get('/api/v1/auth/session')
+      .expect(200)
+      .expect({ username: TEST_ADMIN_USERNAME });
+  });
+
+  it('/api/v1/auth/logout (POST) clears the session, blocking further protected requests', async () => {
+    await agent.get('/api/v1/accounts').expect(200);
+
+    await agent.post('/api/v1/auth/logout').expect(200).expect({
+      success: true,
+    });
+
+    await agent
+      .get('/api/v1/accounts')
+      .expect(401)
+      .expect({
+        code: 'UNAUTHENTICATED',
+        message: 'Inicia sesión para continuar.',
+      });
+  });
+
+  it('/api/v1/auth/logout (POST) succeeds even without a session', () => {
+    return request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .expect(200)
+      .expect({ success: true });
+  });
+
+  it('/api/v1/auth/login (POST) throttles repeated failed attempts', async () => {
+    // The login in beforeEach already used one of the five allowed
+    // attempts for this IP within the throttling window.
+    const anonymous = request(app.getHttpServer());
+    const attempt = () =>
+      anonymous
+        .post('/api/v1/auth/login')
+        .send({ username: TEST_ADMIN_USERNAME, password: 'wrong-password' });
+
+    for (let i = 0; i < 4; i += 1) {
+      await attempt().expect(401);
+    }
+
+    await attempt().expect(429);
   });
 
   afterEach(async () => {
