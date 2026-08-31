@@ -1,6 +1,10 @@
 "use client";
 
-import type { Account, AccountType } from "@gestor-finanzas/contracts";
+import type {
+  Account,
+  AccountBalance,
+  AccountType,
+} from "@gestor-finanzas/contracts";
 import {
   Badge,
   Button,
@@ -30,6 +34,7 @@ export type AccountsTableProps =
   | {
       state: "success";
       accounts: Account[];
+      balancesByAccountId: Map<string, AccountBalance>;
       onEdit: (account: Account) => void;
       onToggleActive: (account: Account) => void;
       togglingAccountId?: string;
@@ -99,7 +104,10 @@ export function AccountsTable(props: AccountsTableProps) {
                     <TableCell>{account.name}</TableCell>
                     <TableCell>{accountTypeLabels[account.type]}</TableCell>
                     <TableCell>{account.currency}</TableCell>
-                    <TableCell>{account.openingBalance}</TableCell>
+                    <TableCell>
+                      {props.balancesByAccountId.get(account.id)?.balance ??
+                        account.openingBalance}
+                    </TableCell>
                     <TableCell>
                       <Badge tone={account.isActive ? "success" : "neutral"}>
                         {account.isActive ? "Activa" : "Inactiva"}

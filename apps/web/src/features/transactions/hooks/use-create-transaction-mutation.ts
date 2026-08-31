@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createTransaction } from "../api/create-transaction";
+import { accountBalancesQueryKey } from "./use-account-balances-query";
 import { transactionsQueryKey } from "./use-transactions-query";
 
 export function useCreateTransactionMutation() {
@@ -7,7 +8,9 @@ export function useCreateTransactionMutation() {
 
   return useMutation({
     mutationFn: createTransaction,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: transactionsQueryKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: transactionsQueryKey });
+      queryClient.invalidateQueries({ queryKey: accountBalancesQueryKey });
+    },
   });
 }

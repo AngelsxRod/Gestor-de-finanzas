@@ -5,6 +5,7 @@ import type {
   CreateAccountRequest,
 } from "@gestor-finanzas/contracts";
 import { Modal } from "@gestor-finanzas/ui";
+import { useAccountBalancesQuery } from "../../transactions/hooks/use-account-balances-query";
 import { AccountApiError } from "../api/account-api-error";
 import { useAccountModal } from "../context/account-modal-context";
 import { useAccountsQuery } from "../hooks/use-accounts-query";
@@ -25,6 +26,7 @@ function toFormValues(account: Account): CreateAccountRequest {
 
 export function AccountsDashboard() {
   const accountsQuery = useAccountsQuery();
+  const balancesQuery = useAccountBalancesQuery();
   const { state, close, openEdit } = useAccountModal();
   const createAccount = useCreateAccountMutation();
   const updateAccount = useUpdateAccountMutation();
@@ -46,20 +48,37 @@ export function AccountsDashboard() {
       ? saveMutation.error.message
       : undefined;
 
+  const isPending = accountsQuery.isPending || balancesQuery.isPending;
+  const isError = accountsQuery.isError || balancesQuery.isError;
+  const isFetching = accountsQuery.isFetching || balancesQuery.isFetching;
+
+  function retry() {
+    void accountsQuery.refetch();
+    void balancesQuery.refetch();
+  }
+
+  const balancesByAccountId = new Map(
+    (balancesQuery.data?.balances ?? []).map((balance) => [
+      balance.accountId,
+      balance,
+    ]),
+  );
+
   return (
     <div className="grid gap-[var(--ui-space-6)]">
-      {accountsQuery.isPending ? <AccountsTable state="loading" /> : null}
-      {accountsQuery.isError ? (
+      {isPending ? <AccountsTable state="loading" /> : null}
+      {!isPending && isError ? (
         <AccountsTable
           state="error"
-          isRetrying={accountsQuery.isFetching}
-          onRetry={() => void accountsQuery.refetch()}
+          isRetrying={isFetching}
+          onRetry={retry}
         />
       ) : null}
-      {accountsQuery.isSuccess ? (
+      {accountsQuery.isSuccess && balancesQuery.isSuccess ? (
         <AccountsTable
           state="success"
           accounts={accountsQuery.data.accounts}
+          balancesByAccountId={balancesByAccountId}
           onEdit={openEdit}
           onToggleActive={(account) =>
             setActive.mutate({ id: account.id, isActive: !account.isActive })

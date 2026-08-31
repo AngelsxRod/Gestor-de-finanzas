@@ -28,11 +28,33 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const balancesByAccountId = new Map([
+  [
+    account.id,
+    {
+      accountId: account.id,
+      accountName: account.name,
+      currency: account.currency,
+      balance: "980.2500",
+    },
+  ],
+  [
+    inactiveAccount.id,
+    {
+      accountId: inactiveAccount.id,
+      accountName: inactiveAccount.name,
+      currency: inactiveAccount.currency,
+      balance: "0.0000",
+    },
+  ],
+]);
+
 export const Loading: Story = { args: { state: "loading" } };
 export const Empty: Story = {
   args: {
     state: "success",
     accounts: [],
+    balancesByAccountId: new Map(),
     onEdit: fn(),
     onToggleActive: fn(),
   },
@@ -41,6 +63,7 @@ export const WithAccounts: Story = {
   args: {
     state: "success",
     accounts: [account, inactiveAccount],
+    balancesByAccountId,
     onEdit: fn(),
     onToggleActive: fn(),
   },
@@ -55,6 +78,7 @@ export const EditInteraction: Story = {
   args: {
     state: "success",
     accounts: [account],
+    balancesByAccountId,
     onEdit: fn(),
     onToggleActive: fn(),
   },
@@ -71,6 +95,7 @@ export const ToggleActiveInteraction: Story = {
   args: {
     state: "success",
     accounts: [account],
+    balancesByAccountId,
     onEdit: fn(),
     onToggleActive: fn(),
   },
