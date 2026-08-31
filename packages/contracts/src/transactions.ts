@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { decimalAmountSchema } from './accounts.js';
 
 export const transactionTypeSchema = z.enum(['income', 'expense', 'transfer'], {
   error: 'Selecciona un tipo de movimiento válido.',
@@ -122,6 +123,37 @@ export const listTransactionsResponseSchema = z.strictObject({
   transactions: z.array(transactionSchema),
 });
 
+export const listTransactionsQuerySchema = z
+  .strictObject({
+    accountId: z.uuid().optional(),
+    categoryId: z.uuid().optional(),
+    type: transactionTypeSchema.optional(),
+    occurredFrom: z.iso.date().optional(),
+    occurredTo: z.iso.date().optional(),
+    isActive: z.enum(['true', 'false']).optional(),
+  })
+  .refine(
+    (value) =>
+      !value.occurredFrom ||
+      !value.occurredTo ||
+      value.occurredFrom <= value.occurredTo,
+    {
+      message: 'La fecha "desde" debe ser anterior o igual a "hasta".',
+      path: ['occurredTo'],
+    },
+  );
+
+export const accountBalanceSchema = z.strictObject({
+  accountId: z.uuid(),
+  accountName: z.string().min(1),
+  currency: z.string().regex(/^[A-Z]{3}$/),
+  balance: decimalAmountSchema,
+});
+
+export const listAccountBalancesResponseSchema = z.strictObject({
+  balances: z.array(accountBalanceSchema),
+});
+
 export const transactionErrorCodeSchema = z.enum([
   'VALIDATION_ERROR',
   'TRANSACTION_NOT_FOUND',
@@ -165,4 +197,9 @@ export type SetTransactionActiveRequest = z.infer<
 >;
 export type SetTransactionActiveResponse = z.infer<
   typeof setTransactionActiveResponseSchema
+>;
+export type ListTransactionsQuery = z.infer<typeof listTransactionsQuerySchema>;
+export type AccountBalance = z.infer<typeof accountBalanceSchema>;
+export type ListAccountBalancesResponse = z.infer<
+  typeof listAccountBalancesResponseSchema
 >;

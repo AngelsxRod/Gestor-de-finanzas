@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  accountBalanceSchema,
   createTransactionRequestSchema,
   createTransactionResponseSchema,
+  listAccountBalancesResponseSchema,
+  listTransactionsQuerySchema,
   listTransactionsResponseSchema,
   setTransactionActiveRequestSchema,
   transactionErrorResponseSchema,
@@ -177,5 +180,49 @@ describe('transaction contracts', () => {
     expect(
       setTransactionActiveRequestSchema.safeParse({ isActive: 'no' }).success,
     ).toBe(false);
+  });
+
+  it('accepts an empty query and a fully populated one', () => {
+    expect(listTransactionsQuerySchema.parse({})).toEqual({});
+    expect(
+      listTransactionsQuerySchema.parse({
+        accountId: incomeTransaction.accountId,
+        categoryId: incomeTransaction.categoryId,
+        type: 'income',
+        occurredFrom: '2026-08-01',
+        occurredTo: '2026-08-31',
+        isActive: 'true',
+      }),
+    ).toEqual({
+      accountId: incomeTransaction.accountId,
+      categoryId: incomeTransaction.categoryId,
+      type: 'income',
+      occurredFrom: '2026-08-01',
+      occurredTo: '2026-08-31',
+      isActive: 'true',
+    });
+  });
+
+  it('rejects a query where "desde" is later than "hasta"', () => {
+    expect(
+      listTransactionsQuerySchema.safeParse({
+        occurredFrom: '2026-08-31',
+        occurredTo: '2026-08-01',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts account balance responses, including a negative balance', () => {
+    const balance = {
+      accountId: incomeTransaction.accountId,
+      accountName: 'Cuenta principal',
+      currency: 'GTQ',
+      balance: '-125.5000',
+    };
+
+    expect(accountBalanceSchema.parse(balance)).toEqual(balance);
+    expect(
+      listAccountBalancesResponseSchema.parse({ balances: [balance] }),
+    ).toEqual({ balances: [balance] });
   });
 });

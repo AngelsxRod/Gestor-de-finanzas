@@ -47,11 +47,14 @@ export {
 } from './categories.js';
 export { healthResponseSchema, type HealthResponse } from './health.js';
 export {
+  accountBalanceSchema,
   createExpenseRequestSchema,
   createIncomeRequestSchema,
   createTransactionRequestSchema,
   createTransactionResponseSchema,
   createTransferRequestSchema,
+  listAccountBalancesResponseSchema,
+  listTransactionsQuerySchema,
   listTransactionsResponseSchema,
   positiveDecimalAmountSchema,
   setTransactionActiveRequestSchema,
@@ -66,8 +69,11 @@ export {
   transactionTypeSchema,
   updateTransactionRequestSchema,
   updateTransactionResponseSchema,
+  type AccountBalance,
   type CreateTransactionRequest,
   type CreateTransactionResponse,
+  type ListAccountBalancesResponse,
+  type ListTransactionsQuery,
   type ListTransactionsResponse,
   type SetTransactionActiveRequest,
   type SetTransactionActiveResponse,
