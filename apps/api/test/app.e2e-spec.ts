@@ -1,6 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { accounts, categories, transactions } from '@gestor-finanzas/models';
+import {
+  accounts,
+  budgets,
+  categories,
+  transactions,
+} from '@gestor-finanzas/models';
 import request from 'supertest';
 import { configureApp } from './../src/app.config.js';
 import { AppModule } from './../src/app.module.js';
@@ -25,6 +30,7 @@ describe('application (e2e)', () => {
     configureApp(app);
     await app.init();
     database = moduleFixture.get(DatabaseService);
+    await database.db.delete(budgets);
     await database.db.delete(transactions);
     await database.db.delete(categories);
     await database.db.delete(accounts);
@@ -755,7 +761,487 @@ describe('application (e2e)', () => {
       });
   });
 
+  it('/api/v1/transactions/balances (GET) computes each account balance from its active movements', async () => {
+    const origin = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Origen',
+        type: 'checking',
+        currency: 'GTQ',
+        openingBalance: '100.0000',
+      })
+      .expect(201);
+    const destination = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Destino',
+        type: 'savings',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const salary = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Salario', type: 'income' })
+      .expect(201);
+    const groceries = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Alimentación', type: 'expense' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'income',
+        amount: '300',
+        accountId: origin.body.account.id,
+        categoryId: salary.body.category.id,
+        occurredAt: '2026-08-01T09:00',
+      })
+      .expect(201);
+    const inactiveExpense = await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'expense',
+        amount: '1000',
+        accountId: origin.body.account.id,
+        categoryId: groceries.body.category.id,
+        occurredAt: '2026-08-02T09:00',
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/transactions/${inactiveExpense.body.transaction.id}/active`)
+      .send({ isActive: false })
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'expense',
+        amount: '40',
+        accountId: origin.body.account.id,
+        categoryId: groceries.body.category.id,
+        occurredAt: '2026-08-03T09:00',
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'transfer',
+        amount: '60',
+        accountId: origin.body.account.id,
+        transferAccountId: destination.body.account.id,
+        occurredAt: '2026-08-04T09:00',
+      })
+      .expect(201);
+
+    const balances = await request(app.getHttpServer())
+      .get('/api/v1/transactions/balances')
+      .expect(200);
+
+    expect(balances.body).toEqual({
+      balances: [
+        {
+          accountId: destination.body.account.id,
+          accountName: 'Destino',
+          currency: 'GTQ',
+          balance: '60.0000',
+        },
+        {
+          accountId: origin.body.account.id,
+          accountName: 'Origen',
+          currency: 'GTQ',
+          // 100 opening + 300 income - 40 expense - 60 transferred out
+          balance: '300.0000',
+        },
+      ],
+    });
+  });
+
+  it('/api/v1/transactions (GET) filters by account, category, type, date range and active state', async () => {
+    const origin = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Origen',
+        type: 'checking',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const destination = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Destino',
+        type: 'savings',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const salary = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Salario', type: 'income' })
+      .expect(201);
+    const groceries = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Alimentación', type: 'expense' })
+      .expect(201);
+
+    const income = await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'income',
+        amount: '100',
+        accountId: origin.body.account.id,
+        categoryId: salary.body.category.id,
+        occurredAt: '2026-08-05T10:00',
+      })
+      .expect(201);
+    const expense = await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'expense',
+        amount: '20',
+        accountId: origin.body.account.id,
+        categoryId: groceries.body.category.id,
+        occurredAt: '2026-08-10T10:00',
+      })
+      .expect(201);
+    const transfer = await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'transfer',
+        amount: '30',
+        accountId: origin.body.account.id,
+        transferAccountId: destination.body.account.id,
+        occurredAt: '2026-08-15T10:00',
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/transactions/${expense.body.transaction.id}/active`)
+      .send({ isActive: false })
+      .expect(200);
+
+    const byAccount = await request(app.getHttpServer())
+      .get(`/api/v1/transactions?accountId=${destination.body.account.id}`)
+      .expect(200);
+    expect(byAccount.body.transactions.map((t: { id: string }) => t.id)).toEqual(
+      [transfer.body.transaction.id],
+    );
+
+    const byType = await request(app.getHttpServer())
+      .get('/api/v1/transactions?type=income')
+      .expect(200);
+    expect(byType.body.transactions.map((t: { id: string }) => t.id)).toEqual([
+      income.body.transaction.id,
+    ]);
+
+    const byDateRange = await request(app.getHttpServer())
+      .get('/api/v1/transactions?occurredFrom=2026-08-10&occurredTo=2026-08-15')
+      .expect(200);
+    expect(
+      byDateRange.body.transactions.map((t: { id: string }) => t.id),
+    ).toEqual([transfer.body.transaction.id, expense.body.transaction.id]);
+
+    const byActive = await request(app.getHttpServer())
+      .get('/api/v1/transactions?isActive=false')
+      .expect(200);
+    expect(byActive.body.transactions.map((t: { id: string }) => t.id)).toEqual(
+      [expense.body.transaction.id],
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/v1/transactions?occurredFrom=2026-08-15&occurredTo=2026-08-01')
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      });
+  });
+
+  it('/api/v1/budgets (POST) validates, creates and enforces category rules', async () => {
+    const expenseCategory = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Alimentación', type: 'expense' })
+      .expect(201);
+    const incomeCategory = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Salario', type: 'income' })
+      .expect(201);
+    const inactiveCategory = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Ocio', type: 'expense' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .patch(`/api/v1/categories/${inactiveCategory.body.category.id}/active`)
+      .send({ isActive: false })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/budgets')
+      .send({
+        categoryId: expenseCategory.body.category.id,
+        month: '2026-13',
+        currency: 'GTQ',
+        limitAmount: '0',
+      })
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/budgets')
+      .send({
+        categoryId: '00000000-0000-0000-0000-000000000000',
+        month: '2026-08',
+        currency: 'GTQ',
+        limitAmount: '500',
+      })
+      .expect(404)
+      .expect({
+        code: 'BUDGET_CATEGORY_NOT_FOUND',
+        message: 'No se encontró la categoría solicitada.',
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/budgets')
+      .send({
+        categoryId: inactiveCategory.body.category.id,
+        month: '2026-08',
+        currency: 'GTQ',
+        limitAmount: '500',
+      })
+      .expect(422)
+      .expect({
+        code: 'BUDGET_CATEGORY_INACTIVE',
+        message: 'La categoría está inactiva.',
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/budgets')
+      .send({
+        categoryId: incomeCategory.body.category.id,
+        month: '2026-08',
+        currency: 'GTQ',
+        limitAmount: '500',
+      })
+      .expect(422)
+      .expect({
+        code: 'BUDGET_CATEGORY_NOT_EXPENSE',
+        message: 'Solo las categorías de gasto pueden tener presupuesto.',
+      });
+
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/budgets')
+      .send({
+        categoryId: expenseCategory.body.category.id,
+        month: '2026-08',
+        currency: 'gtq',
+        limitAmount: '001000.5',
+      })
+      .expect(201);
+    expect(created.body).toMatchObject({
+      budget: {
+        categoryId: expenseCategory.body.category.id,
+        month: '2026-08',
+        currency: 'GTQ',
+        limitAmount: '1000.5000',
+        isActive: true,
+      },
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/budgets')
+      .send({
+        categoryId: expenseCategory.body.category.id,
+        month: '2026-08',
+        currency: 'GTQ',
+        limitAmount: '500',
+      })
+      .expect(409)
+      .expect({
+        code: 'BUDGET_MONTH_CONFLICT',
+        message: 'Ya existe un presupuesto para esa categoría en ese mes.',
+      });
+  });
+
+  it('/api/v1/budgets (GET) requires the month query param and returns spent and remaining', async () => {
+    await request(app.getHttpServer()).get('/api/v1/budgets').expect(400);
+
+    const account = await request(app.getHttpServer())
+      .post('/api/v1/accounts')
+      .send({
+        name: 'Cuenta principal',
+        type: 'checking',
+        currency: 'GTQ',
+        openingBalance: '0.0000',
+      })
+      .expect(201);
+    const groceries = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Alimentación', type: 'expense' })
+      .expect(201);
+    const budget = await request(app.getHttpServer())
+      .post('/api/v1/budgets')
+      .send({
+        categoryId: groceries.body.category.id,
+        month: '2026-08',
+        currency: 'GTQ',
+        limitAmount: '1000',
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/transactions')
+      .send({
+        type: 'expense',
+        amount: '300',
+        accountId: account.body.account.id,
+        categoryId: groceries.body.category.id,
+        occurredAt: '2026-08-15T10:00',
+      })
+      .expect(201);
+
+    const list = await request(app.getHttpServer())
+      .get('/api/v1/budgets?month=2026-08')
+      .expect(200);
+    expect(list.body).toEqual({
+      budgets: [
+        {
+          ...budget.body.budget,
+          spent: '300.0000',
+          remaining: '700.0000',
+        },
+      ],
+    });
+
+    const emptyMonth = await request(app.getHttpServer())
+      .get('/api/v1/budgets?month=2026-09')
+      .expect(200);
+    expect(emptyMonth.body).toEqual({ budgets: [] });
+  });
+
+  it('/api/v1/budgets/:id (PATCH) validates, updates, reports conflicts and not-found', async () => {
+    const groceries = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Alimentación', type: 'expense' })
+      .expect(201);
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/budgets')
+      .send({
+        categoryId: groceries.body.category.id,
+        month: '2026-08',
+        currency: 'GTQ',
+        limitAmount: '1000',
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/budgets')
+      .send({
+        categoryId: groceries.body.category.id,
+        month: '2026-09',
+        currency: 'GTQ',
+        limitAmount: '500',
+      })
+      .expect(201);
+    const budgetId = created.body.budget.id;
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/budgets/${budgetId}`)
+      .send({
+        categoryId: groceries.body.category.id,
+        month: '2026-13',
+        currency: 'GTQ',
+        limitAmount: '1000',
+      })
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      });
+
+    const updateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/budgets/${budgetId}`)
+      .send({
+        categoryId: groceries.body.category.id,
+        month: '2026-08',
+        currency: 'GTQ',
+        limitAmount: '1500',
+      })
+      .expect(200);
+    expect(updateResponse.body).toMatchObject({
+      budget: { id: budgetId, limitAmount: '1500.0000' },
+    });
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/budgets/${budgetId}`)
+      .send({
+        categoryId: groceries.body.category.id,
+        month: '2026-09',
+        currency: 'GTQ',
+        limitAmount: '1500',
+      })
+      .expect(409)
+      .expect({
+        code: 'BUDGET_MONTH_CONFLICT',
+        message: 'Ya existe un presupuesto para esa categoría en ese mes.',
+      });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/budgets/00000000-0000-0000-0000-000000000000')
+      .send({
+        categoryId: groceries.body.category.id,
+        month: '2026-08',
+        currency: 'GTQ',
+        limitAmount: '1000',
+      })
+      .expect(404)
+      .expect({
+        code: 'BUDGET_NOT_FOUND',
+        message: 'No se encontró el presupuesto solicitado.',
+      });
+  });
+
+  it('/api/v1/budgets/:id/active (PATCH) toggles the active flag and reports not-found', async () => {
+    const groceries = await request(app.getHttpServer())
+      .post('/api/v1/categories')
+      .send({ name: 'Alimentación', type: 'expense' })
+      .expect(201);
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/budgets')
+      .send({
+        categoryId: groceries.body.category.id,
+        month: '2026-08',
+        currency: 'GTQ',
+        limitAmount: '1000',
+      })
+      .expect(201);
+    const budgetId = created.body.budget.id;
+
+    const deactivateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/budgets/${budgetId}/active`)
+      .send({ isActive: false })
+      .expect(200);
+    expect(deactivateResponse.body).toMatchObject({
+      budget: { id: budgetId, isActive: false },
+    });
+
+    const reactivateResponse = await request(app.getHttpServer())
+      .patch(`/api/v1/budgets/${budgetId}/active`)
+      .send({ isActive: true })
+      .expect(200);
+    expect(reactivateResponse.body).toMatchObject({
+      budget: { id: budgetId, isActive: true },
+    });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/budgets/00000000-0000-0000-0000-000000000000/active')
+      .send({ isActive: false })
+      .expect(404)
+      .expect({
+        code: 'BUDGET_NOT_FOUND',
+        message: 'No se encontró el presupuesto solicitado.',
+      });
+  });
+
   afterEach(async () => {
+    await database.db.delete(budgets);
     await database.db.delete(transactions);
     await database.db.delete(categories);
     await database.db.delete(accounts);
