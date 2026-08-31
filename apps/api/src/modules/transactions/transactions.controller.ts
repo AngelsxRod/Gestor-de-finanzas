@@ -6,14 +6,17 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   createTransactionRequestSchema,
+  listTransactionsQuerySchema,
   setTransactionActiveRequestSchema,
   updateTransactionRequestSchema,
   type CreateTransactionRequest,
   type CreateTransactionResponse,
   type ListAccountBalancesResponse,
+  type ListTransactionsQuery,
   type ListTransactionsResponse,
   type SetTransactionActiveRequest,
   type SetTransactionActiveResponse,
@@ -32,8 +35,11 @@ export class TransactionsController {
   }
 
   @Get()
-  list(): Promise<ListTransactionsResponse> {
-    return this.transactionsService.list();
+  list(
+    @Query({ schema: listTransactionsQuerySchema })
+    query: ListTransactionsQuery,
+  ): Promise<ListTransactionsResponse> {
+    return this.transactionsService.list(query);
   }
 
   @Post()

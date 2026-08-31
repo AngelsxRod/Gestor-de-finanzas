@@ -7,6 +7,7 @@ import type {
   CreateTransactionRequest,
   CreateTransactionResponse,
   ListAccountBalancesResponse,
+  ListTransactionsQuery,
   ListTransactionsResponse,
   SetTransactionActiveResponse,
   Transaction as TransactionResponse,
@@ -49,8 +50,18 @@ export class TransactionsService {
     private readonly categoriesRepository: CategoriesRepository,
   ) {}
 
-  async list(): Promise<ListTransactionsResponse> {
-    const transactions = await this.transactionsRepository.findAll();
+  async list(
+    query: ListTransactionsQuery = {},
+  ): Promise<ListTransactionsResponse> {
+    const transactions = await this.transactionsRepository.findAll({
+      accountId: query.accountId,
+      categoryId: query.categoryId,
+      type: query.type,
+      occurredFrom: query.occurredFrom,
+      occurredTo: query.occurredTo,
+      isActive:
+        query.isActive === undefined ? undefined : query.isActive === 'true',
+    });
 
     return { transactions: transactions.map(toResponse) };
   }

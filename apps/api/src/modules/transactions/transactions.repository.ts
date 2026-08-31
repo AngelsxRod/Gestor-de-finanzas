@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lte, or, sql } from 'drizzle-orm';
 import {
   accounts,
   transactions,
@@ -15,15 +15,66 @@ export type AccountBalanceRow = {
   balance: string;
 };
 
+export type TransactionListFilters = {
+  accountId?: string;
+  categoryId?: string;
+  type?: 'income' | 'expense' | 'transfer';
+  occurredFrom?: string;
+  occurredTo?: string;
+  isActive?: boolean;
+};
+
+function startOfDay(dateOnly: string): Date {
+  return new Date(`${dateOnly}T00:00:00.000`);
+}
+
+function endOfDay(dateOnly: string): Date {
+  return new Date(`${dateOnly}T23:59:59.999`);
+}
+
 @Injectable()
 export class TransactionsRepository {
   constructor(private readonly database: DatabaseService) {}
 
-  async findAll(): Promise<Transaction[]> {
-    return this.database.db
-      .select()
-      .from(transactions)
-      .orderBy(desc(transactions.occurredAt), desc(transactions.id));
+  async findAll(filters: TransactionListFilters = {}): Promise<Transaction[]> {
+    const conditions = [];
+
+    if (filters.accountId) {
+      conditions.push(
+        or(
+          eq(transactions.accountId, filters.accountId),
+          eq(transactions.transferAccountId, filters.accountId),
+        ),
+      );
+    }
+    if (filters.categoryId) {
+      conditions.push(eq(transactions.categoryId, filters.categoryId));
+    }
+    if (filters.type) {
+      conditions.push(eq(transactions.type, filters.type));
+    }
+    if (filters.occurredFrom) {
+      conditions.push(
+        gte(transactions.occurredAt, startOfDay(filters.occurredFrom)),
+      );
+    }
+    if (filters.occurredTo) {
+      conditions.push(
+        lte(transactions.occurredAt, endOfDay(filters.occurredTo)),
+      );
+    }
+    if (filters.isActive !== undefined) {
+      conditions.push(eq(transactions.isActive, filters.isActive));
+    }
+
+    const query = this.database.db.select().from(transactions);
+    const filtered =
+      conditions.length > 0 ? query.where(and(...conditions)) : query;
+
+    return filtered.orderBy(
+      desc(transactions.occurredAt),
+      desc(transactions.id),
+    );
   }
 
   async findBalances(): Promise<AccountBalanceRow[]> {
