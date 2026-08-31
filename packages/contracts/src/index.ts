@@ -1,4 +1,15 @@
 export {
+  authErrorCodeSchema,
+  authErrorResponseSchema,
+  loginRequestSchema,
+  loginResponseSchema,
+  sessionResponseSchema,
+  type AuthErrorResponse,
+  type LoginRequest,
+  type LoginResponse,
+  type SessionResponse,
+} from './auth.js';
+export {
   budgetErrorCodeSchema,
   budgetErrorResponseSchema,
   budgetMonthSchema,
