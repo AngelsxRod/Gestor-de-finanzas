@@ -11,6 +11,8 @@ storybook-static/
 !.env.example
 !.env.production.example
 
+backups/
+
 *.log
 .DS_Store
 .codegraph/
