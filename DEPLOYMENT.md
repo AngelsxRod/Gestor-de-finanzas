@@ -13,11 +13,14 @@ Requisitos: Node.js 24+, pnpm 11.18.0 y Docker con Compose.
 
 ```bash
 cp .env.example .env
+cp apps/web/.env.local.example apps/web/.env.local
 pnpm install --frozen-lockfile
 docker compose -f compose.dev.yaml up -d --wait
 pnpm db:migrate
 pnpm dev
 ```
+
+`SESSION_SECRET` debe ser idéntico en `.env` y `apps/web/.env.local`: la API firma la cookie de sesión y la web la verifica de forma independiente en `proxy.ts`. `.env.example` ya trae un usuario y contraseña de desarrollo fijos (documentados en el propio archivo); cámbialos fuera del desarrollo local.
 
 Servicios locales:
 
@@ -44,6 +47,15 @@ openssl rand -hex 32
 
 Copia el valor generado tanto en `POSTGRES_PASSWORD` como dentro de `DATABASE_URL`. La contraseña debe estar codificada para URL si contiene caracteres reservados; `openssl rand -hex 32` evita ese problema. El archivo `.env.production` está ignorado por Git.
 
+Genera también las credenciales de autenticación (ver [ADR-0006](docs/adr/0006-autenticacion-sesion-cookie-firmada.md)):
+
+```bash
+node scripts/hash-password.mts "una-contraseña-larga"
+openssl rand -hex 32
+```
+
+Copia el resultado del primer comando en `ADMIN_PASSWORD_HASH`, el usuario elegido en `ADMIN_USERNAME`, y el resultado del segundo comando en `SESSION_SECRET`. `SESSION_SECRET` firma y verifica la misma cookie tanto en `api` como en `web`; usa el mismo valor en ambos servicios de `compose.prod.yaml` (ya está resuelto: ambos leen la variable del mismo `.env.production`).
+
 Antes de desplegar:
 
 ```bash
@@ -67,7 +79,7 @@ curl --fail http://127.0.0.1:3210/api/v1/health
 docker compose --env-file .env.production -f compose.prod.yaml ps
 ```
 
-La aplicación queda disponible en `http://127.0.0.1:3210`. No cambies el binding a `0.0.0.0` ni configures acceso desde Internet mientras no exista autenticación y autorización.
+La aplicación queda disponible en `http://127.0.0.1:3210`. Ya existen autenticación y autorización (ver [ADR-0006](docs/adr/0006-autenticacion-sesion-cookie-firmada.md)), pero eso no basta para exponerla a Internet sin los controles descritos en [Seguridad y acceso remoto](#seguridad-y-acceso-remoto): no cambies el binding a `0.0.0.0` ni configures acceso desde Internet sin resolverlos primero.
 
 ## Actualizaciones
 
@@ -132,6 +144,6 @@ No uses `down --volumes` en producción: elimina permanentemente la base Postgre
 
 ## Seguridad y acceso remoto
 
-La guía oficial de Next.js recomienda un reverse proxy para self-hosting. Cuando la aplicación tenga autenticación, coloca Caddy, nginx o equivalente delante de `127.0.0.1:3210` para administrar HTTPS, límites de peticiones y tráfico malformado. No publiques los puertos internos de API o PostgreSQL.
+La guía oficial de Next.js recomienda un reverse proxy para self-hosting. Antes de aceptar tráfico fuera de esta computadora, coloca Caddy, nginx o equivalente delante de `127.0.0.1:3210` para administrar HTTPS, límites de peticiones y tráfico malformado — la cookie de sesión todavía no se marca `secure` porque el despliegue actual no garantiza HTTPS (ver [ADR-0006](docs/adr/0006-autenticacion-sesion-cookie-firmada.md)). No publiques los puertos internos de API o PostgreSQL.
 
-Siguen pendientes antes de almacenar datos financieros reales: autenticación, autorización, política de sesiones y actualización segura del host. Backups cifrados y restauración probada ya están resueltos (ver [Backup y restauración](#backup-y-restauración)), aunque programar su ejecución periódica y copiarlos fuera de esta máquina siguen siendo tareas del operador.
+Sigue pendiente antes de almacenar datos financieros reales: actualización segura del host. Autenticación, autorización, sesiones (ver [ADR-0006](docs/adr/0006-autenticacion-sesion-cookie-firmada.md)) y backups cifrados con restauración probada (ver [Backup y restauración](#backup-y-restauración)) ya están resueltos, aunque programar el backup periódico, copiarlo fuera de esta máquina, y añadir HTTPS antes de exponerse a otras redes siguen siendo tareas del operador.

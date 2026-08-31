@@ -56,11 +56,11 @@ Este archivo comunica prioridades, no fechas ni compromisos de release. El estad
 - [x] Implementar contratos, persistencia, endpoints e interfaz para crear, editar, desactivar/reactivar y consultar presupuestos por mes, incluido el resumen de gastado y restante.
 - [x] Cubrir contratos, servicio, repository, endpoints e interfaz con pruebas.
 
-## Producto mínimo incremental
+## Producto mínimo incremental completado
 
 - [x] Cubrir cada flujo con tests unitarios, de integración y E2E proporcionales a su riesgo: saldos, filtros de movimientos y presupuestos ya tienen los tres niveles, y CI levanta PostgreSQL para correr integración y E2E en cada push y pull request (antes solo corrían localmente).
 - [x] Automatizar backups y comprobar la restauración antes de usar información financiera real: `scripts/backup.sh` cifra y rota los backups, `scripts/restore.sh` verifica la restauración en una base aislada (ADR-0005). Programar la ejecución periódica (cron/systemd) y copiar los backups fuera de la máquina siguen siendo responsabilidad del operador — ver `DEPLOYMENT.md`.
-- Definir autenticación, autorización y sesiones antes de almacenar información real o ampliar el acceso más allá de la computadora local.
+- [x] Definir autenticación, autorización y sesiones antes de almacenar información real o ampliar el acceso más allá de la computadora local: un solo usuario vía variables de entorno, sesión por cookie firmada sin estado (`jose`, 12h), verificada de forma independiente por la API (guard global) y por la web (`proxy.ts`) (ADR-0006). Sigue pendiente añadir HTTPS/reverse proxy antes de aceptar tráfico fuera de esta computadora — ver `DEPLOYMENT.md`.
 
 ## Más adelante
 

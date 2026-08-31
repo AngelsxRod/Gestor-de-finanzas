@@ -17,11 +17,11 @@ gestor-de-finanzas
     └── tooling        marcador sin configuración
 ```
 
-El esquema de persistencia inicial ya existe, tiene migraciones versionadas y está integrado en el ciclo de vida de la API mediante `DatabaseModule`. Los flujos verticales de cuentas, categorías y movimientos funcionan de extremo a extremo, incluida su edición y desactivación reversible, el saldo calculado por cuenta, los filtros de consulta del historial, y los presupuestos mensuales por categoría con su gasto real calculado.
+El esquema de persistencia inicial ya existe, tiene migraciones versionadas y está integrado en el ciclo de vida de la API mediante `DatabaseModule`. Los flujos verticales de cuentas, categorías y movimientos funcionan de extremo a extremo, incluida su edición y desactivación reversible, el saldo calculado por cuenta, los filtros de consulta del historial, y los presupuestos mensuales por categoría con su gasto real calculado. Toda la API exige una sesión autenticada (ver ADR-0006), salvo el health check y el propio login.
 
 ## Aplicación web
 
-`@gestor-finanzas/web` usa App Router y conserva las rutas y layouts en `app/`. El código de aplicación vive bajo `src/`:
+`@gestor-finanzas/web` usa App Router y conserva las rutas y layouts en `app/`. `app/(dashboard)/` es un route group: agrupa `/`, `/cuentas`, `/categorias`, `/movimientos`, `/presupuestos` y `/configuracion` bajo un `layout.tsx` propio que aplica `AppShell`; `app/login/` queda fuera del grupo y solo comparte el layout raíz (html/body/fuentes/`Providers`), así que no hereda el sidebar. Los route groups no cambian las URLs. `proxy.ts` (raíz de `apps/web`; reemplaza a `middleware.ts`, renombrado y deprecado en Next.js 16) verifica la cookie de sesión antes de cualquier ruta salvo `/login`, `/api`, `_next` y archivos estáticos, y redirige a `/login` sin renderizar el dashboard. El código de aplicación vive bajo `src/`:
 
 - `src/features/<feature>/api`: operaciones HTTP propias de la feature.
 - `src/features/<feature>/hooks`: React Query y hooks de formulario.
@@ -34,6 +34,8 @@ Los Server Components son el valor predeterminado. Query Client, hooks, eventos 
 
 La app es un dashboard con sidebar de navegación y encabezado por sección (`src/features/shell`): `/` es el resumen, `/cuentas`, `/categorias`, `/movimientos` y `/presupuestos` alojan los flujos completos, y `/configuracion` sigue siendo una sección planificada sin backend. `AccountsDashboard`, `CategoriesDashboard`, `TransactionsDashboard` y `BudgetsDashboard` delimitan las regiones cliente que administran consultas, mutaciones e invalidación de caché; sus formularios de alta y edición se presentan en un `Modal` (elemento `<dialog>` nativo) y sus listados en una tabla con acciones de editar y desactivar/reactivar por fila. `TransactionForm` alterna entre categoría y cuenta destino según el tipo elegido (ingreso, gasto o transferencia); pasa las cuentas y categorías completas (no solo las activas), para que editar un movimiento siga mostrando la cuenta o categoría que tenía asignada aunque haya sido desactivada después. `TransactionsTable` resuelve los nombres de cuenta y categoría del mismo modo. `AccountsDashboard` combina `useAccountsQuery` con `useAccountBalancesQuery` (feature `transactions`, ya que el saldo se deriva de `GET /api/v1/transactions/balances`) para que la columna "Saldo" de `AccountsTable` muestre el saldo real en vez del saldo de apertura estático; las tres mutaciones de movimientos invalidan también esa consulta. `TransactionsFilters` es un organism controlado (sin estado propio de formulario, a diferencia de los formularios de alta/edición) que administra `accountId`, `categoryId`, `type`, rango de fechas y estado mediante el hook `useTransactionFilters`, y `TransactionsDashboard` traduce esos valores a `ListTransactionsQuery` antes de pasarlos a `useTransactionsQuery`, cuya clave de caché incluye los filtros activos. `BudgetsDashboard` mantiene el mes seleccionado (`<input type="month">`, por defecto el mes actual) como estado local y lo pasa a `useBudgetsQuery`, cuya clave de caché lo incluye; `BudgetForm` solo ofrece categorías de tipo `expense` (activas, o la ya asignada al editar, mismo filtro que `TransactionForm`) y `BudgetsTable` resalta en rojo la columna "Restante" cuando el gasto supera el límite. Todas las interfaces presentan estados de carga, error, vacío y éxito.
 
+`LoginForm` (feature `auth`) es un organism presentacional más, igual que los demás formularios; `LoginPageContent` (client, usado solo por `app/login/page.tsx`) orquesta el envío, el redirect a `?from=` tras iniciar sesión y el mensaje de error. `Sidebar`/`AppShell` no conocen la sesión: reciben un slot `footer`/`sidebarFooter` opcional, y `app/(dashboard)/layout.tsx` les pasa `SidebarFooter` (nombre de usuario y botón de cerrar sesión) — así ambos siguen siendo componentes puros y sus stories no necesitan un `QueryClientProvider`. `httpClient` intercepta cualquier 401 y fuerza una navegación completa a `/login`, cubriendo una sesión que expira mientras el usuario ya está en la página (`proxy.ts` solo revalida en cada navegación).
+
 ## API
 
 `@gestor-finanzas/api` se organiza mediante feature modules de NestJS:
@@ -41,9 +43,10 @@ La app es un dashboard con sidebar de navegación y encabezado por sección (`sr
 - `AppModule` compone módulos y no contiene comportamiento de dominio.
 - `HealthModule` agrupa controller y service del health check.
 - `DatabaseModule` registra globalmente el cliente tipado de `@gestor-finanzas/models` y administra su cierre.
-- `ConfigModule` carga y valida `DATABASE_URL`, `HOST`, `PORT` y `NODE_ENV` antes del arranque.
-- `app.config.ts` aplica el prefijo `/api/v1` y el pipe global de Standard Schema tanto en runtime como en E2E.
-- `GET /api/v1/health` devuelve el contrato compartido de health.
+- `ConfigModule` carga y valida `DATABASE_URL`, `HOST`, `PORT`, `NODE_ENV`, `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH` y `SESSION_SECRET` antes del arranque.
+- `app.config.ts` aplica el prefijo `/api/v1`, `cookie-parser` y el pipe global de Standard Schema tanto en runtime como en E2E.
+- `AuthModule` registra `AuthGuard` como `APP_GUARD` global: toda ruta exige la cookie `gestor_finanzas_session` salvo las marcadas `@Public()`. `POST /api/v1/auth/login` valida contra `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` (`crypto.scrypt`, siempre corre la comparación aunque el usuario no exista, para no filtrar por tiempo cuál campo falló), está limitada a 5 intentos/minuto (`@nestjs/throttler`) y firma un JWT HS256 (`jose`, 12h) en la cookie. `POST /api/v1/auth/logout` la limpia. `GET /api/v1/auth/session` devuelve el usuario autenticado. Ver ADR-0006.
+- `GET /api/v1/health` (`@Public()`) devuelve el contrato compartido de health.
 - `AccountsModule` contiene controller, servicio y un repository Drizzle específico.
 - `GET /api/v1/accounts` lista cuentas en orden estable por nombre e ID.
 - `POST /api/v1/accounts` valida, normaliza y crea una cuenta; los nombres duplicados devuelven un conflicto público sin detalles de PostgreSQL.
@@ -74,7 +77,7 @@ Los repositories de cuentas y categorías son fronteras pequeñas alrededor de s
 
 Es la fuente de verdad de los datos que cruzan la frontera HTTP. Exporta esquemas Zod ejecutables y tipos inferidos. No contiene React, Axios ni reglas de negocio.
 
-Publica el contrato de respuesta del health check y los esquemas de petición, respuesta y error de cuentas, categorías, movimientos y presupuestos. Los siguientes contratos financieros se añadirán con cada flujo vertical, no por anticipado.
+Publica el contrato de respuesta del health check, los esquemas de autenticación (login, sesión, logout) y los de petición, respuesta y error de cuentas, categorías, movimientos y presupuestos. Los siguientes contratos financieros se añadirán con cada flujo vertical, no por anticipado.
 
 ### `@gestor-finanzas/ui`
 
@@ -104,7 +107,7 @@ Las decisiones y limitaciones del modelo inicial están registradas en [`ADR-000
 
 ```text
 Navegador
-  └─► apps/web /api/v1/health, /api/v1/accounts, /api/v1/categories, /api/v1/transactions, /api/v1/transactions/balances y /api/v1/budgets
+  └─► apps/web /api/v1/health, /api/v1/auth/*, /api/v1/accounts, /api/v1/categories, /api/v1/transactions, /api/v1/transactions/balances y /api/v1/budgets
         └─► rewrite de Next.js
               └─► apps/api
 
@@ -130,6 +133,6 @@ El repositorio conserva un único `pnpm-lock.yaml` raíz.
 
 La API valida `DATABASE_URL`, `HOST`, `PORT` y `NODE_ENV`; abre PostgreSQL de forma diferida y cierra el cliente durante el apagado. La web escucha en `127.0.0.1:3210`. Desarrollo y producción self-hosted tienen Compose separados; producción aplica migraciones antes de iniciar la API y solo publica la web en loopback.
 
-No hay autenticación, autorización, sesiones ni CD. Cuentas, categorías, movimientos y presupuestos son los dominios expuestos. El stack self-hosted es operable en una sola computadora, pero no debe exponerse a una red ni almacenar información financiera real antes de definir y probar los controles de seguridad pendientes.
+No hay CD. Autenticación, autorización y sesiones ya están resueltas (ver ADR-0006); cuentas, categorías, movimientos y presupuestos son los dominios expuestos, todos protegidos por sesión. El stack self-hosted es operable en una sola computadora, pero no debe exponerse a otra red sin resolver antes HTTPS/reverse proxy ni almacenar información financiera real antes de terminar de probar los controles de seguridad pendientes (ver `SECURITY.md`).
 
 [`docs/architecture.md`](docs/architecture.md) describe la dirección objetivo del producto. Este archivo describe únicamente la arquitectura implementada.
