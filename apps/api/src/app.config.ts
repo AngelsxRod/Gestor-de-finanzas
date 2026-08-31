@@ -3,9 +3,11 @@ import {
   StandardSchemaValidationPipe,
   type INestApplication,
 } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
 
 export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix('api/v1');
+  app.use(cookieParser());
   app.useGlobalPipes(
     new StandardSchemaValidationPipe({
       transform: true,

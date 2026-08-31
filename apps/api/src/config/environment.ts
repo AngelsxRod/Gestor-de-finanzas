@@ -14,6 +14,14 @@ const environmentSchema = z.object({
         message: 'DATABASE_URL must use the postgres or postgresql protocol',
       },
     ),
+  ADMIN_USERNAME: z.string().min(1),
+  ADMIN_PASSWORD_HASH: z
+    .string()
+    .regex(
+      /^scrypt:\d+:\d+:\d+:[0-9a-f]+:[0-9a-f]+$/,
+      'ADMIN_PASSWORD_HASH must be generated with scripts/hash-password.ts',
+    ),
+  SESSION_SECRET: z.string().min(32),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;
