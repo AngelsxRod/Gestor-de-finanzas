@@ -58,7 +58,7 @@ Este archivo comunica prioridades, no fechas ni compromisos de release. El estad
 
 ## Producto mínimo incremental
 
-- Cubrir cada flujo con tests unitarios, de integración y E2E proporcionales a su riesgo.
+- [x] Cubrir cada flujo con tests unitarios, de integración y E2E proporcionales a su riesgo: saldos, filtros de movimientos y presupuestos ya tienen los tres niveles, y CI levanta PostgreSQL para correr integración y E2E en cada push y pull request (antes solo corrían localmente).
 - Automatizar backups y comprobar la restauración antes de usar información financiera real.
 - Definir autenticación, autorización y sesiones antes de almacenar información real o ampliar el acceso más allá de la computadora local.
 

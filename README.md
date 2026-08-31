@@ -134,7 +134,7 @@ pnpm build
 
 Consulta [TESTING.md](TESTING.md) para ubicaciones, patrones y limitaciones verificadas.
 
-`pnpm lint`, `pnpm test` y `pnpm build` se ejecutan en integración continua ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) en cada push y pull request contra `main`. Los tests de integración y E2E contra PostgreSQL no corren en CI todavía, ya que requieren una base de datos disponible.
+`pnpm lint`, `pnpm test`, los tests de integración y E2E de la API, y `pnpm build` se ejecutan en integración continua ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) en cada push y pull request contra `main`. CI levanta un servicio PostgreSQL efímero (`gestor_finanzas_test`) y aplica las migraciones antes de correr `test:integration` y `test:e2e`.
 
 ## Build y ejecución de producción
 

@@ -121,7 +121,7 @@ Una app nunca importa archivos internos de la otra y ningún package depende de 
 - `pnpm dev` inicia web y API en paralelo mediante el TUI de Turborepo.
 - `pnpm build` construye primero los packages requeridos y después sus consumidores.
 - `pnpm lint` ejecuta ESLint en web y Oxlint en API.
-- `pnpm test` ejecuta Vitest en API, contracts y las stories web en Chromium. Los tests de integración y E2E de la API contra PostgreSQL (`pnpm --filter @gestor-finanzas/api test:integration` y `test:e2e`) no están incluidos y requieren una base `_test` aislada.
+- `pnpm test` ejecuta Vitest en API, contracts y las stories web en Chromium; no incluye los tests de integración y E2E de la API contra PostgreSQL (`pnpm --filter @gestor-finanzas/api test:integration` y `test:e2e`), que requieren una base `_test` aislada aparte y se ejecutan como pasos propios en CI y localmente.
 - `pnpm storybook` expone el catálogo visual; `pnpm build:storybook` genera su artefacto estático.
 
 El repositorio conserva un único `pnpm-lock.yaml` raíz.
