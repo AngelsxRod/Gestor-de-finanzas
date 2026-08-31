@@ -9,6 +9,25 @@ on:
 jobs:
   lint-test-build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: gestor_finanzas
+          POSTGRES_PASSWORD: gestor_finanzas_local
+          POSTGRES_DB: gestor_finanzas_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Base aislada exclusiva de CI; su nombre termina en `_test` como
+      # exige `packages/api/test` y `*.integration-spec.ts` antes de tocar
+      # cualquier tabla. Nunca apunta a desarrollo ni producción.
+      DATABASE_URL: postgres://gestor_finanzas:gestor_finanzas_local@localhost:5432/gestor_finanzas_test
     steps:
       - name: Clonar el repositorio
         uses: actions/checkout@v4
@@ -33,6 +52,15 @@ jobs:
 
       - name: Tests
         run: pnpm test
+
+      - name: Migrar la base de datos de test
+        run: pnpm db:migrate
+
+      - name: Tests de integración
+        run: pnpm --filter @gestor-finanzas/api test:integration
+
+      - name: Tests E2E
+        run: pnpm --filter @gestor-finanzas/api test:e2e
 
       - name: Build
         run: pnpm build
